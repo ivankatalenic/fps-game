@@ -180,7 +180,7 @@ int main(void) {
 		glUniformMatrix4fv(glGetUniformLocation(shaders.id, "projection"),
 			1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-		unsigned int modelLocation{glGetUniformLocation(shaders.id, "model")};
+		GLint modelLocation{glGetUniformLocation(shaders.id, "model")};
 
 		// Drawing models
 		// Model matrix
@@ -192,7 +192,7 @@ int main(void) {
 		glfwSwapBuffers(window);
 		
 		// Controls
-		float currentTime{glfwGetTime()};
+		float currentTime{static_cast<float>(glfwGetTime())};
 		camera.step(currentTime - frameTime);
 
 		// Timer
@@ -218,7 +218,6 @@ void keyCallback(GLFWwindow* window,
 	int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
-
 
 	} else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
 		camera.setDirection(DIRECTION_FORWARD, true);

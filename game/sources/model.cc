@@ -120,7 +120,7 @@ void Model::processNode(aiNode* node, const aiScene* scene) {
 			Mesh newMesh{processMesh(theMesh, scene)};
 			meshes.push_back(newMesh);
 		} catch (const char* msg) {
-			std::cout << "The error has occurred while loading a mesh: " << msg << std::endl;
+			std::cout << "An error has occurred while loading a mesh: " << msg << std::endl;
 		}
 	}
 	// Process all children nodes
