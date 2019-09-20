@@ -1,3 +1,5 @@
+#include "fps-game-config.h"
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -52,6 +54,9 @@ Mouse mouse;
 
 // Main function
 int main(void) {
+	std::cout << "Game version: " << FPS_GAME_VERSION_MAJOR
+		<< "." << FPS_GAME_VERSION_MINOR << std::endl;
+
 	// Global variables initialization
 	camera = Camera(
 		glm::pi<float>() / 2.0f, 						// FOV in radians
@@ -132,14 +137,14 @@ int main(void) {
 	glEnable(GL_DEPTH_TEST);
 
 	// Setting up shaders
-	shaders = Shader("../shaders/vertex-shader-source.c", "../shaders/fragment-shader-source.c");
+	shaders = Shader("game/shaders/vertex-shader-source.c", "game/shaders/fragment-shader-source.c");
 	shaders.use();
 
 	// Setting up rendering constants
 	// Model theModel{"../models/nanosuit/nanosuit.obj"};
 	// Model theModel{"../models/custom/Mapa.obj"};
 	// Model theModel{"../models/body/DefaultBody.obj"};
-	Model theModel{"../models/plane/plane.obj"};
+	Model theModel{"game/models/plane/plane.obj"};
 
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
