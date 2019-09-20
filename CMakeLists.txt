@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(CMAKE_C_COMPILER "gcc-8")
-set(CMAKE_CXX_COMPILER "g++-8")
+if (UNIX)
+	set(CMAKE_C_COMPILER "gcc-8")
+	set(CMAKE_CXX_COMPILER "g++-8")
+elseif (WIN32)
+	set(CMAKE_C_COMPILER "gcc")
+	set(CMAKE_CXX_COMPILER "g++")
+else ()
+	message(FATAL_ERROR "Platform is not supported!")
+endif ()
 
 project(fps-game)
 
@@ -31,8 +38,17 @@ add_subdirectory(lib/glfw)
 target_compile_options(thegame PUBLIC -Wall -O2)
 target_compile_features(thegame PUBLIC cxx_std_17)
 
-target_include_directories(thegame PUBLIC include game/headers .)
+target_include_directories(thegame PUBLIC include lib/glfw/include game/headers .)
 
 # target_link_directories(thegame lib)
-# build the glfw3 library before linking this
-target_link_libraries(thegame stdc++fs assimp glfw dl)
+if (UNIX)
+	# Linux specific libraries
+	set(PLAT_SPEC_LIBS "dl")
+elseif (WIN32)
+	# Windows specific libraries
+	set(PLAT_SPEC_LIBS "")
+else ()
+	message(FATAL_ERROR "Platform is not supported!")
+endif ()
+
+target_link_libraries(thegame stdc++fs assimp glfw ${PLAT_SPEC_LIBS})

@@ -1,1 +1,4 @@
-This game was made primarily for Windows.
+For compiling on Windows with MSYS use `cmake -G "MSYS Makefiles" .`.
+
+Required libraries are:
+ - assimp
