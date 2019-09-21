@@ -10,9 +10,17 @@
 #include <shader.h>
 
 struct Vertex {
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec2 texCoords;
+	const glm::vec3 position;
+	const glm::vec3 normal;
+	const glm::vec2 texCoords;
+};
+
+struct Polygon {
+	const Vertex& A;
+	const Vertex& B;
+	const Vertex& C;
+	const glm::vec3 normal;
+	const float d;
 };
 
 struct Texture {
@@ -25,12 +33,14 @@ class Mesh {
 	public:
 		std::vector<Vertex> vertices;
 		std::vector<unsigned int> indices;
+		std::vector<Polygon> polygons;
 		std::vector<Texture> textures;
 
 		Mesh(
 			std::vector<Vertex>& aVertices,
-			std::vector<unsigned int>& indices,
-			std::vector<Texture>& textures
+			std::vector<unsigned int>& aIndices,
+			std::vector<Polygon>& aPolygons,
+			std::vector<Texture>& aTextures
 		);
 		void draw(const Shader& shader);
 	

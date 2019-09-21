@@ -49,25 +49,14 @@ bool drawing{true};
 
 Shader shaders;
 Screen screen;
-Camera camera;
 Mouse mouse;
+
+Camera* camera;
 
 // Main function
 int main(void) {
 	std::cout << "Game version: " << FPS_GAME_VERSION_MAJOR
 		<< "." << FPS_GAME_VERSION_MINOR << std::endl;
-
-	// Global variables initialization
-	camera = Camera(
-		glm::pi<float>() / 2.0f, 						// FOV in radians
-		0.1f,											// Near clip plane
-		100.0f,											// Far clip plane
-		0.0f,											// Yaw: Angle from x-axis
-		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
-		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
-		2.5f,											// Movement speed
-		0.001f											// Mouse sensitivity
-	);
 
 	// Setting up GLFW
 	glfwSetErrorCallback(errorCallback);
@@ -146,6 +135,18 @@ int main(void) {
 	// Model theModel{"../models/body/DefaultBody.obj"};
 	Model theModel{"game/models/plane/plane.obj"};
 
+	camera = new Camera(
+		glm::pi<float>() / 2.0f, 						// FOV in radians
+		0.1f,											// Near clip plane
+		100.0f,											// Far clip plane
+		0.0f,											// Yaw: Angle from x-axis
+		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
+		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
+		2.5f,											// Movement speed
+		0.001f,											// Mouse sensitivity
+		theModel
+	);
+
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -168,15 +169,15 @@ int main(void) {
 
 		// Common matrices
 		const glm::mat4& viewMatrix{glm::lookAt(
-			camera.pos,
-			camera.pos + camera.lookAt,
-			camera.viewUp
+			camera->pos,
+			camera->pos + camera->lookAt,
+			camera->viewUp
 		)};
 		const glm::mat4& projectionMatrix{glm::perspective(
-			camera.fov,
+			camera->fov,
 			(float) screen.width / screen.height,
-			camera.clipNear,
-			camera.clipFar
+			camera->clipNear,
+			camera->clipFar
 		)};
 
 		// Setting up projection and view matrices
@@ -198,19 +199,20 @@ int main(void) {
 		
 		// Controls
 		float currentTime{static_cast<float>(glfwGetTime())};
-		camera.step(currentTime - frameTime);
+		camera->step(currentTime - frameTime);
 
 		// Timer
 		if ((currentTime - lastTime) >= TIMER_WAIT) {
 			lastTime = glfwGetTime();
 			double diff{lastTime - frameTime};
-			std::cout << "Position: (" << camera.pos.x << ", " 
-									   << camera.pos.y << ", " 
-									   << camera.pos.z << ")" << '\n';
+			std::cout << "Position: (" << camera->pos.x << ", " 
+									   << camera->pos.y << ", " 
+									   << camera->pos.z << ")" << '\n';
 			std::cout << "FPS: " << 1.0 / diff << std::endl;
 		}
 	}
 
+	delete camera;
 	glfwTerminate();
 	return 0;
 }
@@ -225,34 +227,34 @@ void keyCallback(GLFWwindow* window,
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 
 	} else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-		camera.setDirection(DIRECTION_FORWARD, true);
+		camera->setDirection(DIRECTION_FORWARD, true);
 	} else if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
-		camera.setDirection(DIRECTION_FORWARD, false);
+		camera->setDirection(DIRECTION_FORWARD, false);
 
 	} else if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-		camera.setDirection(DIRECTION_LEFT, true);
+		camera->setDirection(DIRECTION_LEFT, true);
 	} else if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
-		camera.setDirection(DIRECTION_LEFT, false);
+		camera->setDirection(DIRECTION_LEFT, false);
 
 	} else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-		camera.setDirection(DIRECTION_BACKWARD, true);
+		camera->setDirection(DIRECTION_BACKWARD, true);
 	} else if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
-		camera.setDirection(DIRECTION_BACKWARD, false);
+		camera->setDirection(DIRECTION_BACKWARD, false);
 
 	} else if (key == GLFW_KEY_D && action == GLFW_PRESS) {
-		camera.setDirection(DIRECTION_RIGHT, true);
+		camera->setDirection(DIRECTION_RIGHT, true);
 	} else if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
-		camera.setDirection(DIRECTION_RIGHT, false);
+		camera->setDirection(DIRECTION_RIGHT, false);
 
 	} else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) {
-		camera.setDirection(DIRECTION_UP, true);
+		camera->setDirection(DIRECTION_UP, true);
 	} else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) {
-		camera.setDirection(DIRECTION_UP, false);
+		camera->setDirection(DIRECTION_UP, false);
 
 	} else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
-		camera.setDirection(DIRECTION_DOWN, true);
+		camera->setDirection(DIRECTION_DOWN, true);
 	} else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
-		camera.setDirection(DIRECTION_DOWN, false);
+		camera->setDirection(DIRECTION_DOWN, false);
 	}
 }
 
@@ -272,7 +274,7 @@ void windowIconifyCallback(GLFWwindow* window, int iconified) {
 }
 
 void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-	camera.swipe(xpos - mouse.lastX, ypos - mouse.lastY);
+	camera->swipe(xpos - mouse.lastX, ypos - mouse.lastY);
 	mouse.lastX = xpos;
 	mouse.lastY = ypos;
 }

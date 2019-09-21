@@ -8,6 +8,8 @@
 #include <stb_image.h>
 
 #include <glm/glm.hpp>
+#include <cmath>
+#include <cfloat>
 
 unsigned int loadTextureFromFile(std::string file, std::string directory);
 
@@ -19,6 +21,73 @@ void Model::draw(const Shader& shader) {
 	for (auto& mesh : meshes) {
 		mesh.draw(shader);
 	}
+}
+
+/**
+ * Returns a modified velocity vector if a collision
+ * is detected.
+ */
+bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3* new_step) {
+	bool collision{false};
+	float min_lambda{FLT_MAX};
+	glm::vec3 min_intersection;
+	glm::vec3 min_normal;
+	for (Mesh& mesh : meshes) {
+		for (Polygon& polygon : mesh.polygons) {
+			float np{glm::dot(polygon.normal, position)};
+			if (abs(np + polygon.d) > glm::length(step)
+					|| glm::dot(polygon.normal, step) == 0.0f) {
+				continue;
+			}
+			float lambda{(-np - polygon.d) / glm::dot(polygon.normal, step)};
+			if (lambda < 0.0f) {
+				continue;
+			}
+			glm::vec3 intersection(position + lambda * step);
+			if (glm::length(intersection - position) > glm::length(step)) {
+				continue;
+			}
+			float two_surface{
+				glm::length(
+					glm::cross(
+						polygon.B.position - polygon.A.position,
+						polygon.C.position - polygon.A.position
+					)
+				)
+			};
+			float t{glm::length(glm::cross(polygon.B.position - intersection, polygon.C.position - intersection))
+				/ two_surface};
+			if (t <= 0.0f || t >= 1.0f) {
+				continue;
+			}
+			t = glm::length(glm::cross(polygon.A.position - intersection, polygon.C.position - intersection))
+				/ two_surface;
+			if (t <= 0.0f || t >= 1.0f) {
+				continue;
+			}
+			t = glm::length(glm::cross(polygon.A.position - intersection, polygon.B.position - intersection))
+				/ two_surface;
+			if (t <= 0.0f || t >= 1.0f) {
+				continue;
+			}
+			if (lambda < min_lambda) {
+				collision = true;
+				min_lambda = lambda;
+				min_intersection = intersection;
+				min_normal = polygon.normal;
+			} else {
+				continue;
+			}
+			if (collision) {
+				glm::vec3 step_before(min_intersection - position);
+				glm::vec3 step_after(step - step_before);
+				glm::vec3 step_tangent(step_after - glm::dot(min_normal, step) * min_normal);
+				*new_step = step_before + step_tangent;
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void Model::loadModel(const std::string& path) {
@@ -164,6 +233,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 
 	// Setting up indices
 	std::vector<unsigned int> indices;
+	std::vector<Polygon> polygons;
 	for (unsigned int i{0u}; i < mesh->mNumFaces; i++) {
 		aiFace face{mesh->mFaces[i]};
 		if (face.mNumIndices != 3u) {
@@ -173,6 +243,19 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 		for (unsigned int j{0u}; j < face.mNumIndices; j++) {
 			indices.push_back(face.mIndices[j]);
 		}
+		const Vertex& A{vertices[face.mIndices[0]]};
+		const Vertex& B{vertices[face.mIndices[1]]};
+		const Vertex& C{vertices[face.mIndices[2]]};
+		glm::vec3 cross_product(glm::cross(B.position - A.position, C.position - A.position));
+		glm::vec3 normal{0.0f};
+		if (glm::length(cross_product) == 0.0f) {
+			std::cout << "A polygons normal has length equal to 0! Skipping it." << std::endl;
+			continue;
+		} else {
+			normal = glm::normalize(cross_product);
+		}
+		const float d{-glm::dot(normal, A.position)};
+		polygons.push_back({A, B, C, normal, d});
 	}
 	
 	// Setting up textures
@@ -202,7 +285,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 	}
 	
 	// Finalizing
-	return Mesh{vertices, indices, textures};
+	return Mesh{vertices, indices, polygons, textures};
 }
 
 std::vector<Texture> Model::loadMaterialTextures(

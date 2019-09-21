@@ -1,15 +1,19 @@
 #include <mesh.h>
 
+#include <utility>
+
 #include <glad/glad.h>
 
 Mesh::Mesh(
 	std::vector<Vertex>& aVertices,
 	std::vector<unsigned int>& aIndices,
+	std::vector<Polygon>& aPolygons,
 	std::vector<Texture>& aTextures
 ):	// Initialization
-	vertices{aVertices},
-	indices{aIndices},
-	textures{aTextures} {
+	vertices{std::move(aVertices)},
+	indices{std::move(aIndices)},
+	polygons{std::move(aPolygons)},
+	textures{std::move(aTextures)} {
 	// Constructor start
 	setupMesh();
 }

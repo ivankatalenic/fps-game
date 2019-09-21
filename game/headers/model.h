@@ -43,6 +43,7 @@ class Model {
 
 		// Methods
 		void draw(const Shader& shader);
+		bool checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3* new_step);
 
 	private:
 		std::string directory;
