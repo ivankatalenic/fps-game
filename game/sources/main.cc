@@ -37,12 +37,13 @@ struct Mouse {
 };
 
 // Function prototypes
-void errorCallback(int error, const char* description);
-void keyCallback(GLFWwindow* window, 
+void error_callback(int error, const char* description);
+void key_callback(GLFWwindow* window, 
 	int key, int scancode, int action, int mods);
-void framebufferSizeCallback(GLFWwindow* window, int width, int height);
-void windowIconifyCallback(GLFWwindow* window, int iconified);
-void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void window_iconify_callback(GLFWwindow* window, int iconified);
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // Global variables
 bool drawing{true};
@@ -59,7 +60,7 @@ int main(void) {
 		<< "." << FPS_GAME_VERSION_MINOR << std::endl;
 
 	// Setting up GLFW
-	glfwSetErrorCallback(errorCallback);
+	glfwSetErrorCallback(error_callback);
 
 	if (!glfwInit()) {
 		// GLFW initialization failed
@@ -99,10 +100,11 @@ int main(void) {
 	}
 
 	// Setting GLFW callbacks
-	glfwSetKeyCallback(window, keyCallback);
-	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-	glfwSetWindowIconifyCallback(window, windowIconifyCallback);
-	glfwSetCursorPosCallback(window, cursorPositionCallback);
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetWindowIconifyCallback(window, window_iconify_callback);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported()) {
@@ -142,7 +144,7 @@ int main(void) {
 		0.0f,											// Yaw: Angle from x-axis
 		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
 		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
-		2.5f,											// Movement speed
+		2.0f,											// Movement speed
 		0.001f,											// Mouse sensitivity
 		theModel
 	);
@@ -217,11 +219,11 @@ int main(void) {
 	return 0;
 }
 
-void errorCallback(int error, const char* description) {
+void error_callback(int error, const char* description) {
 	std::cout << "Error: " << description << std::endl;
 }
 
-void keyCallback(GLFWwindow* window, 
+void key_callback(GLFWwindow* window, 
 	int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -258,13 +260,13 @@ void keyCallback(GLFWwindow* window,
 	}
 }
 
-void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	screen.width = width;
 	screen.height = height;
 	glViewport(0, 0, screen.width, screen.height);
 }
 
-void windowIconifyCallback(GLFWwindow* window, int iconified) {
+void window_iconify_callback(GLFWwindow* window, int iconified) {
 	if (iconified) {
 		// The window was iconified
 		drawing = false;
@@ -273,8 +275,13 @@ void windowIconifyCallback(GLFWwindow* window, int iconified) {
 	}
 }
 
-void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 	camera->swipe(xpos - mouse.lastX, ypos - mouse.lastY);
 	mouse.lastX = xpos;
 	mouse.lastY = ypos;
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	constexpr float SCROLL_FACTOR{0.5f};
+	camera->speed += SCROLL_FACTOR * static_cast<float>(yoffset);
 }

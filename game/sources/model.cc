@@ -75,17 +75,15 @@ bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3* new_st
 				min_lambda = lambda;
 				min_intersection = intersection;
 				min_normal = polygon.normal;
-			} else {
-				continue;
-			}
-			if (collision) {
-				glm::vec3 step_before(min_intersection - position);
-				glm::vec3 step_after(step - step_before);
-				glm::vec3 step_tangent(step_after - glm::dot(min_normal, step) * min_normal);
-				*new_step = step_before + step_tangent;
-				return true;
 			}
 		}
+	}
+	if (collision) {
+		glm::vec3 step_before(min_intersection - position);
+		glm::vec3 step_after(step - step_before);
+		glm::vec3 step_tangent(step_after - glm::dot(min_normal, step) * min_normal);
+		*new_step = step_before + step_tangent;
+		return true;
 	}
 	return false;
 }
@@ -246,13 +244,15 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 		const Vertex& A{vertices[face.mIndices[0]]};
 		const Vertex& B{vertices[face.mIndices[1]]};
 		const Vertex& C{vertices[face.mIndices[2]]};
-		glm::vec3 cross_product(glm::cross(B.position - A.position, C.position - A.position));
+		glm::vec3 cross_product(
+			glm::cross(B.position - A.position, C.position - A.position)
+		);
 		glm::vec3 normal{0.0f};
-		if (glm::length(cross_product) == 0.0f) {
+		if (glm::length(cross_product) != 0.0f) {
+			normal = glm::normalize(cross_product);
+		} else {
 			std::cout << "A polygons normal has length equal to 0! Skipping it." << std::endl;
 			continue;
-		} else {
-			normal = glm::normalize(cross_product);
 		}
 		const float d{-glm::dot(normal, A.position)};
 		polygons.push_back({A, B, C, normal, d});
