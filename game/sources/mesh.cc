@@ -4,17 +4,34 @@
 
 #include <glad/glad.h>
 
+#include <iostream>
+#include <iomanip>
+
 Mesh::Mesh(
 	std::vector<Vertex>& aVertices,
 	std::vector<unsigned int>& aIndices,
-	std::vector<Polygon>& aPolygons,
 	std::vector<Texture>& aTextures
 ):	// Initialization
 	vertices{std::move(aVertices)},
 	indices{std::move(aIndices)},
-	polygons{std::move(aPolygons)},
 	textures{std::move(aTextures)} {
 	// Constructor start
+
+	for (unsigned long long i{0}; i < indices.size(); i += 3ull) {
+		const Vertex A{vertices[indices[i + 0ull]]};
+		const Vertex B{vertices[indices[i + 1ull]]};
+		const Vertex C{vertices[indices[i + 2ull]]};
+		const glm::vec3 cross_product(glm::cross(B.position - A.position, C.position - A.position));
+		glm::vec3 normal(1.0f, 1.0f, 1.0f);
+		if (glm::length(cross_product) < 0.0001f) {
+			std::cout << "A polygon's normal has length equal to 0!" << std::endl;
+		} else {
+			normal = glm::normalize(cross_product);
+		}
+		const float d{-glm::dot(normal, A.position)};
+		polygons.push_back({{A, B, C}, normal, d});
+	}
+	
 	setupMesh();
 }
 
@@ -45,6 +62,7 @@ void Mesh::setupMesh() {
 }
 
 void Mesh::draw(const Shader& shader) {
+
 	unsigned int diffuseNr{1u};
 	unsigned int specularNr{1u};
 

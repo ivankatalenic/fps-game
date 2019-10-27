@@ -16,9 +16,7 @@ struct Vertex {
 };
 
 struct Polygon {
-	const Vertex& A;
-	const Vertex& B;
-	const Vertex& C;
+	const Vertex vertices[3];
 	const glm::vec3 normal;
 	const float d;
 };
@@ -30,26 +28,26 @@ struct Texture {
 };
 
 class Mesh {
-	public:
-		std::vector<Vertex> vertices;
-		std::vector<unsigned int> indices;
-		std::vector<Polygon> polygons;
-		std::vector<Texture> textures;
+public:
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
+	std::vector<Polygon> polygons;
+	std::vector<Texture> textures;
 
-		Mesh(
-			std::vector<Vertex>& aVertices,
-			std::vector<unsigned int>& aIndices,
-			std::vector<Polygon>& aPolygons,
-			std::vector<Texture>& aTextures
-		);
-		void draw(const Shader& shader);
-	
-	private:
-		unsigned int VAO;
-		unsigned int VBO;
-		unsigned int EBO;
+	// Constructor steals (moves) resources from the given vectors
+	Mesh(
+		std::vector<Vertex>& aVertices,
+		std::vector<unsigned int>& aIndices,
+		std::vector<Texture>& aTextures
+	);
+	void draw(const Shader& shader);
 
-		void setupMesh();
+private:
+	unsigned int VAO;
+	unsigned int VBO;
+	unsigned int EBO;
+
+	void setupMesh();
 };
 
 #endif

@@ -10,6 +10,12 @@
 #include <glm/glm.hpp>
 #include <cmath>
 #include <cfloat>
+#include <optional>
+
+#include <math-aux.h>
+
+#include <iostream>
+#include <iomanip>
 
 unsigned int loadTextureFromFile(std::string file, std::string directory);
 
@@ -27,62 +33,200 @@ void Model::draw(const Shader& shader) {
  * Returns a modified velocity vector if a collision
  * is detected.
  */
-bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3* new_step) {
-	bool collision{false};
-	float min_lambda{FLT_MAX};
-	glm::vec3 min_intersection;
-	glm::vec3 min_normal;
+bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return_step) {
+	constexpr float radius{1.0f};
+	constexpr float error_tolerance{1e-5};
+
+	bool is_collision_detected{false};
+
+	float     collision_lambda{FLT_MAX};
+	glm::vec3 collision_point;
+	glm::vec3 collision_normal;
+
 	for (Mesh& mesh : meshes) {
 		for (Polygon& polygon : mesh.polygons) {
-			float np{glm::dot(polygon.normal, position)};
-			if (abs(np + polygon.d) > glm::length(step)
-					|| glm::dot(polygon.normal, step) == 0.0f) {
-				continue;
+			
+			bool      triangle_collision{false};
+			float     triangle_lambda;
+			glm::vec3 triangle_intersection;
+			glm::vec3 triangle_normal(polygon.normal);
+
+			// Adjust the triangle plane's normal to face the player
+			float plane_dist{glm::dot(polygon.normal, position) + polygon.d};
+			if (plane_dist < 0.0f) {
+				triangle_normal = -polygon.normal;
+				plane_dist = -plane_dist;
 			}
-			float lambda{(-np - polygon.d) / glm::dot(polygon.normal, step)};
-			if (lambda < 0.0f) {
-				continue;
+
+			// Check if the sphere is inside the triangle's bounds
+			constexpr float radius_tolerance{1e-2};
+			if (plane_dist < radius - radius_tolerance) {
+				// Check if the projection is inside triangle
+				const glm::vec3 projection(position - plane_dist * triangle_normal);
+				if (math_aux::is_point_inside_triangle(projection,
+						polygon.vertices[0].position,
+						polygon.vertices[1].position,
+						polygon.vertices[2].position)) {
+					// std::cout << "Inside triangle's plane" << std::endl;
+					// Skip the triangle
+					continue;
+				}
+
+				// Distance to the triangle's edges, and vertices
+				bool skip_triangle{false};
+				for (int i{0}; i < 3; i++) {
+					glm::vec3 p_start(polygon.vertices[i].position);
+					glm::vec3 p_end(polygon.vertices[(i + 1) % 3].position);
+					if (math_aux::distance_to_line(position, p_start, p_end)
+							< radius - radius_tolerance) {
+						// Skip the triangle
+						skip_triangle = true;
+						break;
+					}
+				}
+				if (skip_triangle) {
+					// std::cout << "Inside triangle's edge" << std::endl;
+					continue;
+				}
 			}
-			glm::vec3 intersection(position + lambda * step);
-			if (glm::length(intersection - position) > glm::length(step)) {
-				continue;
+
+
+			// Check if the sphere will hit triangle's parallel bound planes
+			const float triangle_normal_dot_step{glm::dot(triangle_normal, step)};
+			if (triangle_normal_dot_step < 0.0f) {
+				// The step vector is not parallel with the plane
+				// Relative distance to the first parallel plane
+				triangle_lambda = (radius - polygon.d - glm::dot(triangle_normal, position)) 
+					/ triangle_normal_dot_step;
+				if (triangle_lambda >= 0.0f && triangle_lambda < 1.0f) {
+					// The step vector intersects the first parallel plane
+					// std::cout << "step = " 
+					// 	<< std::fixed 
+					// 	<< std::setprecision(6) << glm::length(step) << std::endl;
+					// std::cout << "triangle_lambda = " << triangle_lambda << std::endl;
+					triangle_intersection = position + triangle_lambda * step;
+					const glm::vec3 projection(
+						triangle_intersection - radius * triangle_normal
+					);
+					if (math_aux::is_point_inside_triangle(projection,
+							polygon.vertices[0].position,
+							polygon.vertices[1].position,
+							polygon.vertices[2].position)) {
+						triangle_collision = true;
+						// std::cout << "Hitting triangle's parallel plane" << std::endl;
+					}
+				} else {
+					// Cannot reach triangle's parallel bound plane
+					// Skip the triangle
+					continue;
+				}
 			}
-			float two_surface{
-				glm::length(
-					glm::cross(
-						polygon.B.position - polygon.A.position,
-						polygon.C.position - polygon.A.position
-					)
-				)
-			};
-			float t{glm::length(glm::cross(polygon.B.position - intersection, polygon.C.position - intersection))
-				/ two_surface};
-			if (t <= 0.0f || t >= 1.0f) {
-				continue;
+
+
+			// Check if the sphere will hit triangle's edges
+			if (!triangle_collision) {
+				bool found_edge{false};
+				float edge_lambda{FLT_MAX};
+				glm::vec3 edge_intersection;
+				glm::vec3 edge_p_start;
+				glm::vec3 edge_p_end;
+
+				// Check every edge of the triangle
+				for (int i{0}; i < 3; i++) {
+					const glm::vec3 p_start(polygon.vertices[i].position);
+					const glm::vec3 p_end(polygon.vertices[(i + 1) % 3].position);
+					if (auto status{
+							math_aux::is_colliding_with_cylinder(position, step,
+								p_start, p_end, radius)
+						}) {
+						const float lambda{
+							glm::length(*status - position) / glm::length(step)
+						};
+						if (lambda > 0.0f && lambda < 1.0f
+								&& lambda < edge_lambda) {
+							found_edge = true;
+							edge_lambda = lambda;
+							edge_intersection = *status;
+							edge_p_start = p_start;
+							edge_p_end = p_end;
+						}
+					}
+				} // for (edge)
+
+				// Found an edge which collides with the step vector
+				if (found_edge) {
+					const glm::vec3 axis(glm::normalize(edge_p_end - edge_p_start));
+					triangle_normal = (edge_intersection - edge_p_start)
+						- glm::dot(edge_intersection - edge_p_start, axis) * axis;
+					triangle_intersection = edge_intersection;
+					triangle_lambda = edge_lambda;
+					triangle_collision = true;
+					std::cout << "Hitting triangle's edge" << std::endl;
+				}
+			} // Triangle's edges collision check
+			
+
+			// Check if the sphere will hit triangle's vertices
+			if (!triangle_collision) {
+				bool found_vertex{false};
+				float vertex_lambda{FLT_MAX};
+				glm::vec3 vertex_intersection;
+				glm::vec3 vertex_normal;
+				for (int i{0}; i < 3; i++) {
+					const glm::vec3 vertex(polygon.vertices[i].position);
+					if (auto status{
+							math_aux::is_colliding_with_sphere(position, step,
+								vertex, radius)
+						}) {
+						const float lambda{
+							glm::length(*status - position) / glm::length(step)
+						};
+						if (lambda > 0.0f && lambda < 1.0f
+								&& lambda < vertex_lambda) {
+							vertex_lambda = lambda;
+							vertex_normal = *status - vertex;
+							vertex_intersection = *status;
+							found_vertex = true;
+						}
+					}
+				} // for (vertex)
+
+				// Found a vertex which collides with the step vector
+				if (found_vertex) {
+					triangle_lambda = vertex_lambda;
+					triangle_normal = vertex_normal;
+					triangle_intersection = vertex_intersection;
+					triangle_collision = true;
+					std::cout << "Hitting triangle's vertex" << std::endl;
+				}
+			} // Triangle's vertices collision check
+
+			if (triangle_collision && triangle_lambda < collision_lambda) {
+				collision_lambda = triangle_lambda;
+				collision_point = triangle_intersection;
+				collision_normal = triangle_normal;
+				is_collision_detected = true;
 			}
-			t = glm::length(glm::cross(polygon.A.position - intersection, polygon.C.position - intersection))
-				/ two_surface;
-			if (t <= 0.0f || t >= 1.0f) {
-				continue;
-			}
-			t = glm::length(glm::cross(polygon.A.position - intersection, polygon.B.position - intersection))
-				/ two_surface;
-			if (t <= 0.0f || t >= 1.0f) {
-				continue;
-			}
-			if (lambda < min_lambda) {
-				collision = true;
-				min_lambda = lambda;
-				min_intersection = intersection;
-				min_normal = polygon.normal;
-			}
-		}
-	}
-	if (collision) {
-		glm::vec3 step_before(min_intersection - position);
+
+		} // for (polygon)
+	} // for (mesh)
+
+	if (is_collision_detected) {
+		collision_normal = glm::normalize(collision_normal);
+		glm::vec3 step_before(collision_point - position);
 		glm::vec3 step_after(step - step_before);
-		glm::vec3 step_tangent(step_after - glm::dot(min_normal, step) * min_normal);
-		*new_step = step_before + step_tangent;
+		glm::vec3 step_tangent(step_after - glm::dot(collision_normal, step_after) * collision_normal);
+		glm::vec3 new_step(step_before + step_tangent);
+
+		glm::vec3 recursion_step;
+		// Check if the new step doesn't collide
+		bool collision_status{checkCollision(position, new_step, recursion_step)};
+		if (collision_status) {
+			return_step = recursion_step;
+		} else {
+			return_step = new_step;
+		}
+		// std::cout << "Collision detected!" << std::endl;
 		return true;
 	}
 	return false;
@@ -184,8 +328,7 @@ void Model::processNode(aiNode* node, const aiScene* scene) {
 		unsigned int meshIndex{node->mMeshes[i]};
 		aiMesh* theMesh{scene->mMeshes[meshIndex]};
 		try {
-			Mesh newMesh{processMesh(theMesh, scene)};
-			meshes.push_back(newMesh);
+			meshes.push_back(processMesh(theMesh, scene));
 		} catch (const char* msg) {
 			std::cout << "An error has occurred while loading a mesh: " << msg << std::endl;
 		}
@@ -221,12 +364,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 			texCoords = glm::vec2{tex.x, tex.y};
 		}
 
-		Vertex newVertex{
-			position,
-			normal,
-			texCoords
-		};
-		vertices.push_back(newVertex);
+		vertices.push_back({position, normal, texCoords});
 	}
 
 	// Setting up indices
@@ -241,23 +379,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 		for (unsigned int j{0u}; j < face.mNumIndices; j++) {
 			indices.push_back(face.mIndices[j]);
 		}
-		const Vertex& A{vertices[face.mIndices[0]]};
-		const Vertex& B{vertices[face.mIndices[1]]};
-		const Vertex& C{vertices[face.mIndices[2]]};
-		glm::vec3 cross_product(
-			glm::cross(B.position - A.position, C.position - A.position)
-		);
-		glm::vec3 normal{0.0f};
-		if (glm::length(cross_product) != 0.0f) {
-			normal = glm::normalize(cross_product);
-		} else {
-			std::cout << "A polygons normal has length equal to 0! Skipping it." << std::endl;
-			continue;
-		}
-		const float d{-glm::dot(normal, A.position)};
-		polygons.push_back({A, B, C, normal, d});
 	}
-	
+
 	// Setting up textures
 	// Does a mesh contain a material?
 	std::vector<Texture> textures;
@@ -285,7 +408,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 	}
 	
 	// Finalizing
-	return Mesh{vertices, indices, polygons, textures};
+	return Mesh{vertices, indices, textures};
 }
 
 std::vector<Texture> Model::loadMaterialTextures(

@@ -37,30 +37,30 @@ struct Light {
 };
 
 class Model {
-	public:
-		// Constructors
-		Model(const char* path);
+public:
+	// Constructors
+	Model(const char* path);
 
-		// Methods
-		void draw(const Shader& shader);
-		bool checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3* new_step);
+	// Methods
+	void draw(const Shader& shader);
+	bool checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& new_step);
 
-	private:
-		std::string directory;
+private:
+	std::string directory;
 
-		std::vector<Mesh> meshes;
-		std::vector<Light> lights;
-		std::vector<Texture> loadedTextures;
+	std::vector<Mesh> meshes;
+	std::vector<Light> lights;
+	std::vector<Texture> loadedTextures;
 
-		// Methods
-		void loadModel(const std::string& path);
-		void processNode(aiNode* node, const aiScene* scene);
-		Mesh processMesh(aiMesh* mesh, const aiScene* scene);
-		std::vector<Texture> loadMaterialTextures(
-			aiMaterial* mat,
-			aiTextureType type,
-			std::string typeName
-		);
+	// Methods
+	void loadModel(const std::string& path);
+	void processNode(aiNode* node, const aiScene* scene);
+	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+	std::vector<Texture> loadMaterialTextures(
+		aiMaterial* mat,
+		aiTextureType type,
+		std::string typeName
+	);
 };
 
 #endif

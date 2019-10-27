@@ -32,8 +32,8 @@ struct Screen {
 };
 
 struct Mouse {
-	double lastX;
-	double lastY;
+	float lastX;
+	float lastY;
 };
 
 // Function prototypes
@@ -71,10 +71,10 @@ int main(void) {
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
 		// Uncomment following two lines for fullscreen
-	screen.width = videoMode->width;
-	screen.height = videoMode->height;
-	// screen.width = 1280;
-	// screen.height = 720;
+	// screen.width = videoMode->width;
+	// screen.height = videoMode->height;
+	screen.width = 1280;
+	screen.height = 720;
 	mouse.lastX = screen.width / 2;
 	mouse.lastY = screen.height / 2;
 
@@ -88,9 +88,9 @@ int main(void) {
 	// glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
 	std::cout << "Refresh rate: " << videoMode->refreshRate << '\n';
 	std::cout << "Resolution: " << screen.width << " * " << screen.height << std::endl;
-	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
-		"First GLFW Application", monitor, NULL);
-	// GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, "First GLFW Application", NULL, NULL);
+	// GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
+	// 	"First GLFW Application", monitor, NULL);
+	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, "First GLFW Application", NULL, NULL);
 
 	if (!window) {
 		// Window creation failed
@@ -151,13 +151,12 @@ int main(void) {
 
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	#define TIMER_WAIT 0.5
-	double lastTime = glfwGetTime();
+	float lastTime{static_cast<float>(glfwGetTime())};
 
 	while (!glfwWindowShouldClose(window)) {
-		double frameTime = glfwGetTime();
+		float frameTime{static_cast<float>(glfwGetTime())};
 
 		glfwPollEvents();
 		if (!drawing) {
@@ -204,14 +203,15 @@ int main(void) {
 		camera->step(currentTime - frameTime);
 
 		// Timer
-		if ((currentTime - lastTime) >= TIMER_WAIT) {
-			lastTime = glfwGetTime();
-			double diff{lastTime - frameTime};
-			std::cout << "Position: (" << camera->pos.x << ", " 
-									   << camera->pos.y << ", " 
-									   << camera->pos.z << ")" << '\n';
-			std::cout << "FPS: " << 1.0 / diff << std::endl;
-		}
+		// constexpr float TIMER_WAIT{1.0f};
+		// if ((currentTime - lastTime) >= TIMER_WAIT) {
+		// 	lastTime = static_cast<float>(glfwGetTime());
+		// 	float diff{lastTime - frameTime};
+		// 	std::cout << "Position: (" << camera->pos.x << ", " 
+		// 							   << camera->pos.y << ", " 
+		// 							   << camera->pos.z << ")" << '\n';
+		// 	std::cout << "FPS: " << 1.0f / diff << std::endl;
+		// }
 	}
 
 	delete camera;
