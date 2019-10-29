@@ -17,6 +17,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include <debug-help.h>
+
 unsigned int loadTextureFromFile(std::string file, std::string directory);
 
 Model::Model(const char* path) {
@@ -34,7 +36,7 @@ void Model::draw(const Shader& shader) {
  * is detected.
  */
 bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return_step) {
-	constexpr float radius{1.0f};
+	constexpr float radius{4.0f};
 	constexpr float error_tolerance{1e-5};
 
 	bool is_collision_detected{false};
@@ -118,7 +120,7 @@ bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return
 				} else {
 					// Cannot reach triangle's parallel bound plane
 					// Skip the triangle
-					continue;
+					// continue;
 				}
 			}
 
@@ -126,10 +128,9 @@ bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return
 			// Check if the sphere will hit triangle's edges
 			if (!triangle_collision) {
 				bool found_edge{false};
-				float edge_lambda{FLT_MAX};
+				float 	  edge_lambda{FLT_MAX};
 				glm::vec3 edge_intersection;
-				glm::vec3 edge_p_start;
-				glm::vec3 edge_p_end;
+				glm::vec3 edge_normal;
 
 				// Check every edge of the triangle
 				for (int i{0}; i < 3; i++) {
@@ -142,25 +143,30 @@ bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return
 						const float lambda{
 							glm::length(*status - position) / glm::length(step)
 						};
-						if (lambda > 0.0f && lambda < 1.0f
+						const glm::vec3 axis(glm::normalize(p_end - p_start));
+						const glm::vec3 normal(
+							(*status - p_start)
+								- glm::dot(*status - p_start, axis) * axis
+						);
+						const float normal_dot_step{glm::dot(normal, step)};
+						if (lambda >= 0.0f && lambda < 1.0f
+								&& normal_dot_step < 0.0f
 								&& lambda < edge_lambda) {
 							found_edge = true;
 							edge_lambda = lambda;
 							edge_intersection = *status;
-							edge_p_start = p_start;
-							edge_p_end = p_end;
+							edge_normal = normal;
 						}
 					}
 				} // for (edge)
 
 				// Found an edge which collides with the step vector
 				if (found_edge) {
-					const glm::vec3 axis(glm::normalize(edge_p_end - edge_p_start));
-					triangle_normal = (edge_intersection - edge_p_start)
-						- glm::dot(edge_intersection - edge_p_start, axis) * axis;
 					triangle_intersection = edge_intersection;
 					triangle_lambda = edge_lambda;
+					triangle_normal = edge_normal;
 					triangle_collision = true;
+
 					std::cout << "Hitting triangle's edge" << std::endl;
 				}
 			} // Triangle's edges collision check
@@ -181,10 +187,12 @@ bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return
 						const float lambda{
 							glm::length(*status - position) / glm::length(step)
 						};
-						if (lambda > 0.0f && lambda < 1.0f
+						const glm::vec3 normal(*status - vertex);
+						if (lambda >= 0.0f && lambda < 1.0f
+								&& glm::dot(normal, step) < 0.0f
 								&& lambda < vertex_lambda) {
 							vertex_lambda = lambda;
-							vertex_normal = *status - vertex;
+							vertex_normal = normal;
 							vertex_intersection = *status;
 							found_vertex = true;
 						}
@@ -218,14 +226,15 @@ bool Model::checkCollision(glm::vec3 position, glm::vec3 step, glm::vec3& return
 		glm::vec3 step_tangent(step_after - glm::dot(collision_normal, step_after) * collision_normal);
 		glm::vec3 new_step(step_before + step_tangent);
 
+		return_step = new_step;
+
 		glm::vec3 recursion_step;
 		// Check if the new step doesn't collide
-		bool collision_status{checkCollision(position, new_step, recursion_step)};
-		if (collision_status) {
-			return_step = recursion_step;
-		} else {
-			return_step = new_step;
-		}
+		// bool collision_status{checkCollision(position, new_step, recursion_step)};
+		// if (collision_status) {
+		// 	return_step = recursion_step;
+		// }
+
 		// std::cout << "Collision detected!" << std::endl;
 		return true;
 	}

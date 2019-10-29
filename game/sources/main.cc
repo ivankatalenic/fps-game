@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <memory>
 #include <filesystem>
 
 #include <glad/glad.h>
@@ -32,8 +33,8 @@ struct Screen {
 };
 
 struct Mouse {
-	float lastX;
-	float lastY;
+	double lastX;
+	double lastY;
 };
 
 // Function prototypes
@@ -52,7 +53,7 @@ Shader shaders;
 Screen screen;
 Mouse mouse;
 
-Camera* camera;
+std::shared_ptr<Camera> camera;
 
 // Main function
 int main(void) {
@@ -75,8 +76,8 @@ int main(void) {
 	// screen.height = videoMode->height;
 	screen.width = 1280;
 	screen.height = 720;
-	mouse.lastX = screen.width / 2;
-	mouse.lastY = screen.height / 2;
+	mouse.lastX = screen.width / 2.0;
+	mouse.lastY = screen.height / 2.0;
 
 	glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
 	glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
@@ -90,7 +91,11 @@ int main(void) {
 	std::cout << "Resolution: " << screen.width << " * " << screen.height << std::endl;
 	// GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
 	// 	"First GLFW Application", monitor, NULL);
-	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, "First GLFW Application", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(
+		screen.width, screen.height,
+		"daj_strika", 
+		NULL, NULL
+	);
 
 	if (!window) {
 		// Window creation failed
@@ -137,16 +142,18 @@ int main(void) {
 	// Model theModel{"../models/body/DefaultBody.obj"};
 	Model theModel{"game/models/plane/plane.obj"};
 
-	camera = new Camera(
-		glm::pi<float>() / 2.0f, 						// FOV in radians
-		0.1f,											// Near clip plane
-		100.0f,											// Far clip plane
-		0.0f,											// Yaw: Angle from x-axis
-		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
-		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
-		2.0f,											// Movement speed
-		0.001f,											// Mouse sensitivity
-		theModel
+	camera = std::shared_ptr<Camera>(
+		new Camera(
+			glm::pi<float>() / 2.0f, 						// FOV in radians
+			0.1f,											// Near clip plane
+			100.0f,											// Far clip plane
+			0.0f,											// Yaw: Angle from x-axis
+			0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
+			glm::vec3(2.0f, 2.0f, 2.0f),					// Position
+			2.0f,											// Movement speed
+			0.001f,											// Mouse sensitivity
+			theModel
+		)
 	);
 
 	// Main render loop
@@ -214,7 +221,6 @@ int main(void) {
 		// }
 	}
 
-	delete camera;
 	glfwTerminate();
 	return 0;
 }
