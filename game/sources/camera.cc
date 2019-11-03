@@ -5,6 +5,8 @@
 #include <glm/geometric.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
+#include <math-aux.h>
+
 Camera::Camera(float aFov, float aClipNear, float aClipFar,
 		float aYaw, float aPitch, glm::vec3 aPos,
 		float aSpeed, float aSensitivity,
@@ -42,16 +44,14 @@ Camera::Camera(float aFov, float aClipNear, float aClipFar,
 
 void Camera::step(float timeDelta) {
 	glm::vec3 step(timeDelta * speed * direction);
-	constexpr float step_threshold{1e-5f};
-	if (glm::length(step) < step_threshold) {
-		return;
-	}
-	glm::vec3 new_step;
-	bool collision_detected{model.checkCollision(pos, step, new_step)};
-	if (collision_detected) {
-		pos += new_step;
-	} else {
-		pos += step;
+	if (!math_aux::is_zero(glm::length(step))) {
+		glm::vec3 new_step;
+		bool collision_detected{model.checkCollision(pos, step, new_step)};
+		if (collision_detected) {
+			pos += new_step;
+		} else {
+			pos += step;
+		}
 	}
 }
 

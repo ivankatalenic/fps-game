@@ -23,6 +23,7 @@
 #include <shader.h>
 #include <camera.h>
 #include <model.h>
+#include <debug-help.h>
 
 // Constant definitions
 
@@ -160,10 +161,16 @@ int main(void) {
 	glfwSwapInterval(0); // VSYNC
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	float lastTime{static_cast<float>(glfwGetTime())};
+	long frame_count{0l};
+	double fps_sum{0.0};
+
+	double current_time{glfwGetTime()};
+	double frame_start_time{current_time};
+	double last_frame_duration{1.0 / 60.0};
+
+	double last_fps_display_time{current_time};
 
 	while (!glfwWindowShouldClose(window)) {
-		float frameTime{static_cast<float>(glfwGetTime())};
 
 		glfwPollEvents();
 		if (!drawing) {
@@ -205,20 +212,28 @@ int main(void) {
 
 		glfwSwapBuffers(window);
 		
+		frame_count++;
+		fps_sum += 1.0 / last_frame_duration;
+
 		// Controls
-		float currentTime{static_cast<float>(glfwGetTime())};
-		camera->step(currentTime - frameTime);
+		camera->step(static_cast<float>(last_frame_duration));
 
 		// Timer
-		// constexpr float TIMER_WAIT{1.0f};
-		// if ((currentTime - lastTime) >= TIMER_WAIT) {
-		// 	lastTime = static_cast<float>(glfwGetTime());
-		// 	float diff{lastTime - frameTime};
-		// 	std::cout << "Position: (" << camera->pos.x << ", " 
-		// 							   << camera->pos.y << ", " 
-		// 							   << camera->pos.z << ")" << '\n';
-		// 	std::cout << "FPS: " << 1.0f / diff << std::endl;
-		// }
+		constexpr double FPS_DISPLAY_WAIT{1.0};
+		if ((current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
+			last_fps_display_time = glfwGetTime();
+
+			const double avg_fps{fps_sum / frame_count};
+			fps_sum = 0.0;
+			frame_count = 0l;
+			debug::print_var(avg_fps, "Avg. FPS");
+			
+			debug::print_vec(camera->pos, "Position");
+		}
+
+		current_time = glfwGetTime();
+		last_frame_duration = current_time - frame_start_time;
+		frame_start_time = current_time;
 	}
 
 	glfwTerminate();

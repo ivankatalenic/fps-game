@@ -8,6 +8,14 @@
 
 namespace math_aux {
 
+	inline bool is_zero(float value) {
+		constexpr float ZERO_TOLERANCE{1e-5f};
+		if (abs(value) < ZERO_TOLERANCE) {
+			return true;
+		}
+		return false;
+	}
+
 	inline bool is_point_inside_triangle(glm::vec3 T,
 			glm::vec3 A, glm::vec3 B, glm::vec3 C) {
 		const float two_surface{
