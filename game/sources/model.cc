@@ -14,9 +14,6 @@
 
 #include <math-aux.h>
 
-#include <iostream>
-#include <iomanip>
-
 #include <debug-help.h>
 
 struct collision_result {
@@ -44,15 +41,18 @@ void Model::draw(const Shader& shader) {
 bool Model::checkCollision(
 		glm::vec3 position,
 		glm::vec3 step,
-		glm::vec3& return_step
+		glm::vec3& return_step,
+		const Polygon* last_collision_polygon
 	) {
 
-	constexpr float radius{4.0f};
+	constexpr float radius{1.0f};
 
 	bool is_collision_detected{false};
 
-	collision_result main_collision;
+	collision_result main_collision{};
 	main_collision.relative_distance = FLT_MAX;
+
+	Polygon* main_collision_polygon{nullptr};
 
 	for (Mesh& mesh : meshes) {
 		for (Polygon& polygon : mesh.polygons) {
@@ -167,9 +167,7 @@ bool Model::checkCollision(
 
 				// Found an edge which collides with the step vector
 				if (is_edge_collision) {
-					triangle_collision.point = edge_collision.point;
-					triangle_collision.relative_distance = edge_collision.relative_distance;
-					triangle_collision.normal = edge_collision.normal;
+					triangle_collision = edge_collision;
 					is_triangle_collision = true;
 
 					// debug::print_str("Hitting a triangle's edge");
@@ -210,25 +208,25 @@ bool Model::checkCollision(
 
 				// Found a vertex which collides with the step vector
 				if (is_vertex_collision) {
-					triangle_collision.relative_distance = vertex_collision.relative_distance;
-					triangle_collision.normal = vertex_collision.normal;
-					triangle_collision.point = vertex_collision.point;
+					triangle_collision = vertex_collision;
 					is_triangle_collision = true;
 					// debug::print_str("Hitting triangle's vertex");
 				}
 			} // Triangle's vertices collision check
 
-			if (is_triangle_collision && triangle_collision.relative_distance < main_collision.relative_distance) {
-				main_collision.relative_distance = triangle_collision.relative_distance;
-				main_collision.point = triangle_collision.point;
-				main_collision.normal = triangle_collision.normal;
-				is_collision_detected = true;
+			if (is_triangle_collision
+					&& triangle_collision.relative_distance
+						< main_collision.relative_distance) {
+				main_collision = triangle_collision;
+				is_collision_detected = true;			
+				main_collision_polygon = &polygon;
 			}
 
 		} // for (polygon)
 	} // for (mesh)
 
-	if (is_collision_detected) {
+	if (is_collision_detected
+			&& main_collision_polygon != last_collision_polygon) {
 		main_collision.normal = glm::normalize(main_collision.normal);
 		// The vector from the position to the point of collision.
 		// The vector before the collision point.
@@ -243,13 +241,6 @@ bool Model::checkCollision(
 		// Also know as the resolution vector.
 		const glm::vec3 step_tangent(step_after - collision_normal_dot_step_after * main_collision.normal);
 
-		// debug::print_vec(step_before, "step_before");
-		// debug::print_vec(step_after, "step_after");
-		// debug::print_vec(step_tangent, "step_tangent");
-		// debug::print_vec(main_collision.normal, "collision_normal");
-		// debug::print_var(main_collision.relative_distance, "main_collision.relative_distance");
-		// debug::print_var(glm::dot(main_collision.normal, step), "collision_normal_dot_step");
-		// debug::print_var(collision_normal_dot_step_after, "collision_normal_dot_step_after");
 
 		// Don't do the new collision check if the resolution vector
 		// can't collide with any other object.
@@ -264,8 +255,7 @@ bool Model::checkCollision(
 		// Don't do the new collision check if the resolution vector
 		// can't be accurately calculated because of the limited
 		// floating point data type precision.
-		if (!math_aux::is_zero(glm::length(step_after))
-				&& !math_aux::is_zero(collision_normal_dot_step_after)) {
+		if (!math_aux::is_zero(glm::length(step_after))) {
 			// Check if the new step vector doesn't collide with other objects
 			// The vector which, ideally, would resolve the collision.
 			const glm::vec3 new_step(step_before + step_tangent);
@@ -274,7 +264,8 @@ bool Model::checkCollision(
 				checkCollision(
 					position,
 					new_step,
-					recursion_return_step
+					recursion_return_step,
+					main_collision_polygon
 				)
 			};
 			if (is_new_collision_detected) {
@@ -286,6 +277,15 @@ bool Model::checkCollision(
 			// The step_after vector, aka the penetration vector,
 			// is zero, hence use only a vector up to the point of collision,
 			// aka the step_before vector.
+			// debug::print_vec(step_before, "step_before");
+			// debug::print_vec(step_after, "step_after");
+			// debug::print_vec(step_tangent, "step_tangent");
+			// debug::print_vec(main_collision.normal, "normal");
+
+			// debug::print_var(main_collision.relative_distance, "relative_distance");
+			// debug::print_var(glm::dot(main_collision.normal, step), "normal_dot_step");
+			// debug::print_var(collision_normal_dot_step_after, "collision_normal_dot_step_after");
+
 			return_step = step_before;
 		}
 

@@ -138,10 +138,11 @@ int main(void) {
 	shaders.use();
 
 	// Setting up rendering constants
-	// Model theModel{"../models/nanosuit/nanosuit.obj"};
-	// Model theModel{"../models/custom/Mapa.obj"};
-	// Model theModel{"../models/body/DefaultBody.obj"};
+	// Model theModel{"game/models/nanosuit/nanosuit.obj"};
+	// Model theModel{"game/models/custom/Mapa.obj"};
+	// Model theModel{"game/models/body/DefaultBody.obj"};
 	Model theModel{"game/models/plane/plane.obj"};
+	// Model theModel{"game/models/filko/filko.obj"};
 
 	camera = std::shared_ptr<Camera>(
 		new Camera(
@@ -180,6 +181,7 @@ int main(void) {
 
 		// Clearing the framebuffer
 		glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
+		// glClearColor(1.f, 1.f, 1.f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Common matrices
