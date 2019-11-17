@@ -7,6 +7,7 @@
 #include <string>
 
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
 class Shader {
 	public:
@@ -22,9 +23,10 @@ class Shader {
 		// Sets program for use
 		void use();
 
-		void setBool(const std::string& name, bool value);
-		void setInt(const std::string& name, int value);
-		void setFloat(const std::string& name, float value);
+		void setBool(const std::string& name, bool value) const;
+		void setInt(const std::string& name, int value) const;
+		void setFloat(const std::string& name, float value) const;
+		void setVec3(const std::string& name, glm::vec3 value) const;
 	private:
 };
 

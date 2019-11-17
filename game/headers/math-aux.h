@@ -10,7 +10,7 @@ namespace math_aux {
 
 	inline bool is_zero(float value) {
 		constexpr float ZERO_TOLERANCE{1e-5f};
-		if (abs(value) < ZERO_TOLERANCE) {
+		if (fabs(value) < ZERO_TOLERANCE) {
 			return true;
 		}
 		return false;
@@ -22,11 +22,11 @@ namespace math_aux {
 			glm::length(glm::cross(B - A, C - A))
 		};
 
-		float t1{glm::length(glm::cross(A - T, B - T)) / two_surface};
-		float t2{glm::length(glm::cross(B - T, C - T)) / two_surface};
-		float t3{glm::length(glm::cross(C - T, A - T)) / two_surface};
+		const float t1{glm::length(glm::cross(A - T, B - T)) / two_surface};
+		const float t2{glm::length(glm::cross(B - T, C - T)) / two_surface};
+		const float t3{glm::length(glm::cross(C - T, A - T)) / two_surface};
 		constexpr float error_tolerance{1e-5f};
-		if (abs(t1 + t2 + t3 - 1.0f) > error_tolerance) {
+		if (fabs(t1 + t2 + t3 - 1.0f) > error_tolerance) {
 			return false;
 		}
 		return true;

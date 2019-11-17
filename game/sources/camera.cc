@@ -44,14 +44,12 @@ Camera::Camera(float aFov, float aClipNear, float aClipFar,
 
 void Camera::step(float timeDelta) {
 	glm::vec3 step(timeDelta * speed * direction);
-	if (!math_aux::is_zero(glm::length(step))) {
-		glm::vec3 new_step;
-		bool collision_detected{model.checkCollision(pos, step, new_step)};
-		if (collision_detected) {
-			pos += new_step;
-		} else {
-			pos += step;
-		}
+	glm::vec3 new_step;
+	bool collision_detected{model.checkCollision(pos, step, new_step)};
+	if (collision_detected) {
+		pos += new_step;
+	} else {
+		pos += step;
 	}
 }
 

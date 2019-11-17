@@ -3,13 +3,17 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include <assimp/scene.h>
 #include <assimp/mesh.h>
 #include <assimp/material.h>
 #include <assimp/light.h>
 
+#include <glm/glm.hpp>
+
 #include <mesh.h>
+#include <shader.h>
 
 enum LightType {
 	LightType_DIRECTIONAL,		// The Sun
@@ -42,12 +46,12 @@ public:
 	Model(const char* path);
 
 	// Methods
-	void draw(const Shader& shader);
+	void draw(std::shared_ptr<Shader> shader);
 	bool checkCollision(
 		glm::vec3 position,
 		glm::vec3 step,
 		glm::vec3& new_step,
-		const Polygon* last_collision_polygon = {nullptr}
+		int recursion_depth = 0
 	);
 
 private:

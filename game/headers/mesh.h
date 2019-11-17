@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -21,31 +22,39 @@ struct Polygon {
 	const float d;
 };
 
+struct Material {
+	glm::vec3 color_ambient;
+	glm::vec3 color_diffuse;
+	glm::vec3 color_specular;
+};
+
 struct Texture {
 	unsigned int id;
 	std::string type;
 	std::string path;
 };
 
+struct Light;
+
 class Mesh {
 public:
 	std::vector<Vertex> vertices;
-	std::vector<unsigned int> indices;
 	std::vector<Polygon> polygons;
 	std::vector<Texture> textures;
+
+	Material material;
 
 	// Constructor steals (moves) resources from the given vectors
 	Mesh(
 		std::vector<Vertex>& aVertices,
-		std::vector<unsigned int>& aIndices,
-		std::vector<Texture>& aTextures
+		std::vector<Texture>& aTextures,
+		Material amaterial
 	);
-	void draw(const Shader& shader);
+	void draw(std::shared_ptr<Shader> shader);
 
 private:
 	unsigned int VAO;
 	unsigned int VBO;
-	unsigned int EBO;
 
 	void setupMesh();
 };

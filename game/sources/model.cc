@@ -1,5 +1,10 @@
 #include <model.h>
 
+#include <cmath>
+#include <cfloat>
+#include <optional>
+#include <memory>
+
 #include <assimp/Importer.hpp>
 #include <assimp/vector3.h>
 #include <assimp/types.h>
@@ -8,10 +13,6 @@
 #include <stb_image.h>
 
 #include <glm/glm.hpp>
-#include <cmath>
-#include <cfloat>
-#include <optional>
-
 #include <math-aux.h>
 
 #include <debug-help.h>
@@ -28,7 +29,7 @@ Model::Model(const char* path) {
 	loadModel(std::string(path));
 }
 
-void Model::draw(const Shader& shader) {
+void Model::draw(std::shared_ptr<Shader> shader) {
 	for (auto& mesh : meshes) {
 		mesh.draw(shader);
 	}
@@ -42,35 +43,52 @@ bool Model::checkCollision(
 		glm::vec3 position,
 		glm::vec3 step,
 		glm::vec3& return_step,
-		const Polygon* last_collision_polygon
+		int recursion_depth
 	) {
 
-	constexpr float radius{1.0f};
+	return false;
+
+	if (math_aux::is_zero(glm::length(step))) {
+		return_step = glm::vec3(0.0f);
+		return true;
+	}
+
+	constexpr int RECURSION_CUTOFF{5};
+	if (recursion_depth >= RECURSION_CUTOFF) {
+		debug::print_str("The recursion cutoff depth reached!");
+		return_step = glm::vec3(0.0f);
+		return true;
+	}
+
+	constexpr float bound_radius{1.0f};
 
 	bool is_collision_detected{false};
 
 	collision_result main_collision{};
 	main_collision.relative_distance = FLT_MAX;
 
-	Polygon* main_collision_polygon{nullptr};
-
 	for (Mesh& mesh : meshes) {
 		for (Polygon& polygon : mesh.polygons) {
 			
 			bool is_triangle_collision{false};
 			collision_result triangle_collision;
+
 			triangle_collision.normal = polygon.normal;
 
+			float plane_dist{glm::dot(triangle_collision.normal, position) + polygon.d};
+			float polygon_d{polygon.d};
 			// Adjust the triangle plane's normal to face the player
-			float plane_dist{glm::dot(polygon.normal, position) + polygon.d};
+			// And adjust the plane distance
+			// And adjust the polygon's d parameter
 			if (plane_dist < 0.0f) {
-				triangle_collision.normal = -polygon.normal;
+				triangle_collision.normal = -triangle_collision.normal;
 				plane_dist = -plane_dist;
+				polygon_d = -polygon_d;
 			}
 
 			// Check if the sphere is inside the triangle's bounds
-			constexpr float radius_tolerance{1e-2};
-			if (plane_dist < radius - radius_tolerance) {
+			constexpr float BOUND_RADIUS_TOLERANCE{1e-2};
+			if (plane_dist < bound_radius - BOUND_RADIUS_TOLERANCE) {
 				// Check if the projection is inside triangle
 				const glm::vec3 projection(position - plane_dist * triangle_collision.normal);
 				if (math_aux::is_point_inside_triangle(projection,
@@ -89,14 +107,14 @@ bool Model::checkCollision(
 					glm::vec3 p_start(polygon.vertices[i].position);
 					glm::vec3 p_end(polygon.vertices[(i + 1) % 3].position);
 					if (math_aux::distance_to_line(position, p_start, p_end)
-							< radius - radius_tolerance) {
+							< bound_radius - BOUND_RADIUS_TOLERANCE) {
 						// Skip the triangle
 						skip_triangle = true;
 						break;
 					}
 				}
 				if (skip_triangle) {
-					// debug::print_str("Inside a triangle's edge");
+					debug::print_str("Inside a triangle's edge");
 					continue;
 				}
 			}
@@ -109,14 +127,14 @@ bool Model::checkCollision(
 				// The step vector is not parallel with the plane
 				// Relative distance to the first parallel plane
 				triangle_collision.relative_distance = 
-					(radius - polygon.d - glm::dot(triangle_collision.normal, position))
+					(bound_radius - polygon_d - glm::dot(triangle_collision.normal, position))
 						/ triangle_normal_dot_step;
 				if (triangle_collision.relative_distance >= 0.0f
-						&& triangle_collision.relative_distance < 1.0f) {
+						&& triangle_collision.relative_distance <= 1.0f) {
 					triangle_collision.point =
 						position + triangle_collision.relative_distance * step;
 					const glm::vec3 projection(
-						triangle_collision.point - radius * triangle_collision.normal
+						triangle_collision.point - bound_radius * triangle_collision.normal
 					);
 					if (math_aux::is_point_inside_triangle(projection,
 							polygon.vertices[0].position,
@@ -141,7 +159,7 @@ bool Model::checkCollision(
 					const glm::vec3 p_end(polygon.vertices[(i + 1) % 3].position);
 					if (auto status{
 							math_aux::is_colliding_with_cylinder(position, step,
-								p_start, p_end, radius)
+								p_start, p_end, bound_radius)
 						}) {
 						const float relative_distance{
 							glm::length(*status - position) / glm::length(step)
@@ -152,8 +170,8 @@ bool Model::checkCollision(
 								- glm::dot(*status - p_start, axis) * axis
 						);
 						const float normal_dot_step{glm::dot(normal, step)};
-						if (relative_distance >= 0.0f && relative_distance < 1.0f
-								&& !math_aux::is_zero(normal_dot_step)
+						if (relative_distance >= 0.0f && relative_distance <= 1.0f
+								// && !math_aux::is_zero(normal_dot_step)
 								&& normal_dot_step < 0.0f
 								&& relative_distance < edge_collision.relative_distance) {
 							is_edge_collision = true;
@@ -187,7 +205,7 @@ bool Model::checkCollision(
 					const glm::vec3 vertex(polygon.vertices[i].position);
 					if (auto status{
 							math_aux::is_colliding_with_sphere(position, step,
-								vertex, radius)
+								vertex, bound_radius)
 						}) {
 						const float relative_distance{
 							glm::length(*status - position) / glm::length(step)
@@ -195,7 +213,7 @@ bool Model::checkCollision(
 						const glm::vec3 normal(*status - vertex);
 						const float normal_dot_step{glm::dot(normal, step)};
 						if (relative_distance >= 0.0f && relative_distance < 1.0f
-								&& !math_aux::is_zero(normal_dot_step)
+								// && !math_aux::is_zero(normal_dot_step)
 								&& normal_dot_step < 0.0f
 								&& relative_distance < vertex_collision.relative_distance) {
 							vertex_collision.relative_distance = relative_distance;
@@ -219,28 +237,43 @@ bool Model::checkCollision(
 						< main_collision.relative_distance) {
 				main_collision = triangle_collision;
 				is_collision_detected = true;			
-				main_collision_polygon = &polygon;
 			}
 
 		} // for (polygon)
 	} // for (mesh)
 
-	if (is_collision_detected
-			&& main_collision_polygon != last_collision_polygon) {
-		main_collision.normal = glm::normalize(main_collision.normal);
+	if (is_collision_detected) {
+		debug::print_str("Collision detected!");
+
 		// The vector from the position to the point of collision.
 		// The vector before the collision point.
 		const glm::vec3 step_before(main_collision.point - position);
+
 		// The vector from the point of collision to the end of the step vector
 		// The vector after the collision point.
 		// Also know as the penetration vector.
 		const glm::vec3 step_after(step - step_before);
+
 		const float collision_normal_dot_step_after{glm::dot(main_collision.normal, step_after)};
 		// The vector that is perpendicular to the surface of the point of collision.
 		// The tangent vector to the collision surface.
-		// Also know as the resolution vector.
-		const glm::vec3 step_tangent(step_after - collision_normal_dot_step_after * main_collision.normal);
+		const glm::vec3 step_tangent(step_after
+			- collision_normal_dot_step_after * main_collision.normal);
 
+		constexpr float NORMAL_JUMP{1e-5f};
+		// A vector used to split a player from the surface on which it stands.
+		const glm::vec3 step_up(NORMAL_JUMP * main_collision.normal);
+
+		const glm::vec3 step_resolution(step_tangent + step_up);
+
+		debug::print_vec(step_before, "step_before");
+		debug::print_vec(step_after, "step_after");
+		debug::print_vec(step_tangent, "step_tangent");
+		debug::print_vec(main_collision.normal, "normal");
+
+		debug::print_var(main_collision.relative_distance, "relative_distance");
+		debug::print_var(glm::dot(main_collision.normal, step), "normal_dot_step");
+		debug::print_var(collision_normal_dot_step_after, "collision_normal_dot_step_after");
 
 		// Don't do the new collision check if the resolution vector
 		// can't collide with any other object.
@@ -255,39 +288,29 @@ bool Model::checkCollision(
 		// Don't do the new collision check if the resolution vector
 		// can't be accurately calculated because of the limited
 		// floating point data type precision.
-		if (!math_aux::is_zero(glm::length(step_after))) {
-			// Check if the new step vector doesn't collide with other objects
-			// The vector which, ideally, would resolve the collision.
-			const glm::vec3 new_step(step_before + step_tangent);
+		// if (!math_aux::is_zero(glm::length(step_tangent))) {
+			// Check if the resolution vector vector doesn't collide with other objects
 			glm::vec3 recursion_return_step;
 			bool is_new_collision_detected{
 				checkCollision(
-					position,
-					new_step,
+					position + step_before,
+					step_resolution,
 					recursion_return_step,
-					main_collision_polygon
+					++recursion_depth
 				)
 			};
 			if (is_new_collision_detected) {
-				return_step = recursion_return_step;
+				return_step = step_before + recursion_return_step;
 			} else {
-				return_step = new_step;
+				return_step = step_before + step_resolution;
 			}
-		} else {
-			// The step_after vector, aka the penetration vector,
-			// is zero, hence use only a vector up to the point of collision,
-			// aka the step_before vector.
-			// debug::print_vec(step_before, "step_before");
-			// debug::print_vec(step_after, "step_after");
-			// debug::print_vec(step_tangent, "step_tangent");
-			// debug::print_vec(main_collision.normal, "normal");
+		// } else {
+		// 	// The step_after vector, aka the penetration vector,
+		// 	// is zero, hence use only a vector up to the point of collision,
+		// 	// aka the step_before vector.
 
-			// debug::print_var(main_collision.relative_distance, "relative_distance");
-			// debug::print_var(glm::dot(main_collision.normal, step), "normal_dot_step");
-			// debug::print_var(collision_normal_dot_step_after, "collision_normal_dot_step_after");
-
-			return_step = step_before;
-		}
+		// 	return_step = step_up + step_before;
+		// }
 
 		return true;
 	}
@@ -308,6 +331,7 @@ void Model::loadModel(const std::string& path) {
 	processNode(scene->mRootNode, scene);
 	// Process lights
 	if (scene->HasLights()) {
+		debug::print_var(scene->mNumLights, "Model light count");
 		for (unsigned int i{0u}; i < scene->mNumLights; i++) {
 			const aiLight* light{scene->mLights[i]};
 			Light theLight;
@@ -373,15 +397,9 @@ void Model::loadModel(const std::string& path) {
 			);
 			lights.push_back(theLight);
 		}
-	} else {
-		// Add one directional (Sun) light
-		Light theLight;
-		theLight.colorAmbient = glm::vec3(1.0f, 1.0f, 1.0f);
-		theLight.colorDiffuse = glm::vec3(0.99216f, 0.72157f, 0.07451f);
-		theLight.colorSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
-		theLight.direction = glm::normalize(glm::vec3(0.3f, -0.8f, 0.0f));
-		lights.push_back(theLight);
+
 	} // End of light processing
+
 }
 
 void Model::processNode(aiNode* node, const aiScene* scene) {
@@ -402,54 +420,72 @@ void Model::processNode(aiNode* node, const aiScene* scene) {
 }
 
 Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
-	// TODO Throw exceptions if a mesh creation fails (for example: if there are no vertices present in the mesh)
-	// Setting up vertices
 	if (!mesh->HasPositions()) {
 		throw "Mesh has no vertex positions!";
 	}
-	if (!mesh->HasNormals()) {
-		throw "Mesh has no vertex normals!";
-	}
 
+	// Setting up vertices
 	std::vector<Vertex> vertices;
-	for (unsigned int i{0u}; i < mesh->mNumVertices; i++) {
-		aiVector3D theVertex{mesh->mVertices[i]};
-		glm::vec3 position{theVertex.x, theVertex.y, theVertex.z};
-
-		aiVector3D theNormal{mesh->mNormals[i]};
-		glm::vec3 normal{theNormal.x, theNormal.y, theNormal.z};
-
-		glm::vec2 texCoords{0.0f, 0.0f};
-		// Does a mesh contain texture coordinates?
-		if (mesh->mTextureCoords[0] != nullptr) {
-			aiVector3D tex{mesh->mTextureCoords[0][i]};
-			texCoords = glm::vec2{tex.x, tex.y};
-		}
-
-		vertices.push_back({position, normal, texCoords});
-	}
-
-	// Setting up indices
-	std::vector<unsigned int> indices;
-	std::vector<Polygon> polygons;
 	for (unsigned int i{0u}; i < mesh->mNumFaces; i++) {
-		aiFace face{mesh->mFaces[i]};
-		if (face.mNumIndices != 3u) {
+		const aiFace ai_face{mesh->mFaces[i]};
+
+		if (ai_face.mNumIndices == 3) {
+			glm::vec3 vertices_positions[3];
+			glm::vec2 vertices_tex_coords[3];
+			for (int j{0}; j < 3; j++) {
+				const int vertex_index{static_cast<int>(ai_face.mIndices[j])};
+
+				const aiVector3D ai_vertex{mesh->mVertices[vertex_index]};
+				const glm::vec3 position{ai_vertex.x, ai_vertex.y, ai_vertex.z};
+				vertices_positions[j] = position;
+				
+				glm::vec2 tex_coords{0.0f, 0.0f};
+				// Does a mesh contain texture coordinates?
+				if (mesh->mTextureCoords[0] != nullptr) {
+					aiVector3D ai_tex_coords{mesh->mTextureCoords[0][vertex_index]};
+					tex_coords = glm::vec2{ai_tex_coords.x, ai_tex_coords.y};
+				}
+				vertices_tex_coords[j] = tex_coords;
+			}
+			const glm::vec3 cross_product(
+				glm::cross(
+					vertices_positions[1] - vertices_positions[0],
+					vertices_positions[2] - vertices_positions[0]
+				)
+			);
+			glm::vec3 normal(1.0f);
+			if (!math_aux::is_zero(glm::length(cross_product))) {
+				normal = glm::normalize(cross_product);
+			} else {
+				std::cout << "Triangle has a normal with length equal to 0!" << std::endl;
+			}
+			for (unsigned int j{0u}; j < 3; j++) {
+				vertices.push_back({vertices_positions[j], normal, vertices_tex_coords[j]});
+			}
+		} else {
 			std::cout << "Found a face that doesn't have three vertices! Skipping it." << std::endl;
-			continue;
 		}
-		for (unsigned int j{0u}; j < face.mNumIndices; j++) {
-			indices.push_back(face.mIndices[j]);
-		}
+
 	}
 
 	// Setting up textures
-	// Does a mesh contain a material?
+	Material material{};
 	std::vector<Texture> textures;
 	if (mesh->mMaterialIndex >= 0) {
+		aiMaterial* mat{scene->mMaterials[mesh->mMaterialIndex]};
+
+		// Setting a material's colors
+		aiColor3D ai_color(0.0f, 0.0f, 0.0f);
+		mat->Get(AI_MATKEY_COLOR_AMBIENT, ai_color);
+		material.color_ambient = glm::vec3(ai_color.r, ai_color.g, ai_color.b);
+		mat->Get(AI_MATKEY_COLOR_DIFFUSE, ai_color);
+		material.color_diffuse = glm::vec3(ai_color.r, ai_color.g, ai_color.b);
+		mat->Get(AI_MATKEY_COLOR_SPECULAR, ai_color);
+		material.color_specular = glm::vec3(ai_color.r, ai_color.g, ai_color.b);
+
 		const std::vector<Texture>& diffuseTextures{
 			loadMaterialTextures(
-				scene->mMaterials[mesh->mMaterialIndex],
+				mat,
 				aiTextureType_DIFFUSE,
 				std::string{"texture_diffuse"}
 			)
@@ -459,7 +495,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 		}
 		const std::vector<Texture>& specularTextures{
 			loadMaterialTextures(
-				scene->mMaterials[mesh->mMaterialIndex],
+				mat,
 				aiTextureType_SPECULAR,
 				std::string{"texture_specular"}
 			)
@@ -470,7 +506,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 	}
 	
 	// Finalizing
-	return Mesh{vertices, indices, textures};
+	return Mesh{vertices, textures, material};
 }
 
 std::vector<Texture> Model::loadMaterialTextures(

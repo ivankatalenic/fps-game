@@ -50,11 +50,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 // Global variables
 bool drawing{true};
 
-Shader shaders;
 Screen screen;
 Mouse mouse;
 
 std::shared_ptr<Camera> camera;
+std::shared_ptr<Shader> mesh_shader;
+std::shared_ptr<Shader> light_shader;
 
 // Main function
 int main(void) {
@@ -134,33 +135,40 @@ int main(void) {
 	glEnable(GL_DEPTH_TEST);
 
 	// Setting up shaders
-	shaders = Shader("game/shaders/vertex-shader-source.c", "game/shaders/fragment-shader-source.c");
-	shaders.use();
+	light_shader = std::shared_ptr<Shader>(
+		new Shader("game/shaders/mesh-vertex.c", "game/shaders/light-fragment.c")
+	);
+	mesh_shader = std::shared_ptr<Shader>(
+		new Shader("game/shaders/mesh-vertex.c", "game/shaders/mesh-fragment.c")
+	);
+	mesh_shader->use();
 
 	// Setting up rendering constants
-	// Model theModel{"game/models/nanosuit/nanosuit.obj"};
-	// Model theModel{"game/models/custom/Mapa.obj"};
-	// Model theModel{"game/models/body/DefaultBody.obj"};
-	Model theModel{"game/models/plane/plane.obj"};
-	// Model theModel{"game/models/filko/filko.obj"};
+	// Model terrain("game/models/nanosuit/nanosuit.obj");
+	// Model terrain("game/models/custom/Mapa.obj");
+	// Model terrain("game/models/body/DefaultBody.obj");
+	// Model terrain("game/models/plane/plane.obj");
+	// Model terrain("game/models/filko/filko.obj");
+	// Model terrain("game/models/ramp/ramp.obj");
+	Model terrain("game/models/plane-cube/plane-cube.obj");
 
 	camera = std::shared_ptr<Camera>(
 		new Camera(
-			glm::pi<float>() / 2.0f, 						// FOV in radians
+			glm::pi<float>() / 2.5f, 						// FOV in radians
 			0.1f,											// Near clip plane
 			100.0f,											// Far clip plane
 			0.0f,											// Yaw: Angle from x-axis
 			0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
 			glm::vec3(2.0f, 2.0f, 2.0f),					// Position
-			2.0f,											// Movement speed
+			4.0f,											// Movement speed
 			0.001f,											// Mouse sensitivity
-			theModel
+			terrain
 		)
 	);
 
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	long frame_count{0l};
 	double fps_sum{0.0};
@@ -185,11 +193,13 @@ int main(void) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Common matrices
-		const glm::mat4& viewMatrix{glm::lookAt(
-			camera->pos,
-			camera->pos + camera->lookAt,
-			camera->viewUp
-		)};
+		const glm::mat4& viewMatrix{
+			glm::lookAt(
+				camera->pos,
+				camera->pos + camera->lookAt,
+				camera->viewUp
+			)
+		};
 		const glm::mat4& projectionMatrix{glm::perspective(
 			camera->fov,
 			(float) screen.width / screen.height,
@@ -198,31 +208,60 @@ int main(void) {
 		)};
 
 		// Setting up projection and view matrices
-		glUniformMatrix4fv(glGetUniformLocation(shaders.id, "view"),
+		glUniformMatrix4fv(glGetUniformLocation(mesh_shader->id, "view"),
 			1, GL_FALSE, glm::value_ptr(viewMatrix));
-		glUniformMatrix4fv(glGetUniformLocation(shaders.id, "projection"),
+		glUniformMatrix4fv(glGetUniformLocation(mesh_shader->id, "projection"),
 			1, GL_FALSE, glm::value_ptr(projectionMatrix));
 
-		GLint modelLocation{glGetUniformLocation(shaders.id, "model")};
+		GLint model_location{glGetUniformLocation(mesh_shader->id, "model")};
+
+		mesh_shader->setVec3("camera_position", camera->pos);
 
 		// Drawing models
+
 		// Model matrix
 		glm::mat4 model{glm::mat4(1.0f)};
-		// model = glm::scale(model, glm::vec3(0.1f));
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-		theModel.draw(shaders);
+		glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
+
+		// Setting a single light
+		constexpr float LIGHT_ROTATION_RADIUS{30.0f};
+		constexpr glm::vec3 LIGHT_ROTATION_CENTER{0.0f, 15.0f, 0.0f};
+		constexpr float LIGHT_ROTATION_PERIOD{10.0f}; // In seconds
+		constexpr float LIGHT_ROTATION_ANGULAR_SPEED{
+			2.0f * glm::pi<float>() / LIGHT_ROTATION_PERIOD
+		};
+		const float light_rotation_angle{
+			static_cast<float>(LIGHT_ROTATION_ANGULAR_SPEED * current_time)
+		};
+		mesh_shader->setVec3(
+			"light_position",
+			LIGHT_ROTATION_CENTER
+				+ glm::vec3(
+					LIGHT_ROTATION_RADIUS * cos(light_rotation_angle),
+					0.0f,
+					LIGHT_ROTATION_RADIUS * sin(light_rotation_angle)
+				)
+		);
+		mesh_shader->setVec3("light_color_ambient", glm::vec3(0.5f));
+		mesh_shader->setVec3("light_color_diffuse", glm::vec3(1.0f));
+		mesh_shader->setVec3("light_color_specular", glm::vec3(0.5f));
+
+		terrain.draw(mesh_shader);
 
 		glfwSwapBuffers(window);
-		
-		frame_count++;
-		fps_sum += 1.0 / last_frame_duration;
+
 
 		// Controls
 		camera->step(static_cast<float>(last_frame_duration));
 
-		// Timer
+
+		// Timer, and the FPS display
+		frame_count++;
+		fps_sum += 1.0 / last_frame_duration;
 		constexpr double FPS_DISPLAY_WAIT{1.0};
-		if ((current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
+		constexpr bool SHOW_FPS{true};
+		if (SHOW_FPS
+				&& (current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
 			last_fps_display_time = glfwGetTime();
 
 			const double avg_fps{fps_sum / frame_count};
