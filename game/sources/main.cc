@@ -193,35 +193,29 @@ int main(void) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Common matrices
-		const glm::mat4& viewMatrix{
+		const glm::mat4 mat_model{glm::mat4(1.0f)};
+		const glm::mat4 mat_view{
 			glm::lookAt(
 				camera->pos,
 				camera->pos + camera->lookAt,
 				camera->viewUp
 			)
 		};
-		const glm::mat4& projectionMatrix{glm::perspective(
+		const glm::mat4 mat_projection{glm::perspective(
 			camera->fov,
-			(float) screen.width / screen.height,
+			static_cast<float>(screen.width) / screen.height,
 			camera->clipNear,
 			camera->clipFar
 		)};
 
 		// Setting up projection and view matrices
-		glUniformMatrix4fv(glGetUniformLocation(mesh_shader->id, "view"),
-			1, GL_FALSE, glm::value_ptr(viewMatrix));
-		glUniformMatrix4fv(glGetUniformLocation(mesh_shader->id, "projection"),
-			1, GL_FALSE, glm::value_ptr(projectionMatrix));
-
-		GLint model_location{glGetUniformLocation(mesh_shader->id, "model")};
-
-		mesh_shader->setVec3("camera_position", camera->pos);
+		mesh_shader->setMat4("mat_model", mat_model);
+		mesh_shader->setMat4("mat_view", mat_view);
+		mesh_shader->setMat4("mat_projection", mat_projection);
+		mesh_shader->setMat4("frag_mat_model", mat_model);
+		mesh_shader->setMat4("frag_mat_view", mat_view);
 
 		// Drawing models
-
-		// Model matrix
-		glm::mat4 model{glm::mat4(1.0f)};
-		glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
 
 		// Setting a single light
 		constexpr float LIGHT_ROTATION_RADIUS{30.0f};
@@ -242,9 +236,9 @@ int main(void) {
 					LIGHT_ROTATION_RADIUS * sin(light_rotation_angle)
 				)
 		);
-		mesh_shader->setVec3("light_color_ambient", glm::vec3(0.5f));
-		mesh_shader->setVec3("light_color_diffuse", glm::vec3(1.0f));
-		mesh_shader->setVec3("light_color_specular", glm::vec3(0.5f));
+		mesh_shader->setVec3("light_color_ambient", glm::vec3(0.4f));
+		mesh_shader->setVec3("light_color_diffuse", glm::vec3(0.6f));
+		mesh_shader->setVec3("light_color_specular", glm::vec3(0.2f));
 
 		terrain.draw(mesh_shader);
 
