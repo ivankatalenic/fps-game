@@ -333,69 +333,37 @@ void Model::loadModel(const std::string& path) {
 	if (scene->HasLights()) {
 		debug::print_var(scene->mNumLights, "Model light count");
 		for (unsigned int i{0u}; i < scene->mNumLights; i++) {
-			const aiLight* light{scene->mLights[i]};
-			Light theLight;
+			const aiLight* ai_light{scene->mLights[i]};
+			Light my_light;
 			// Setting light-type-specific parameters
-			switch (light->mType) {
-				case aiLightSource_DIRECTIONAL:
-					theLight.direction = glm::vec3{
-						light->mDirection.x,
-						light->mDirection.y,
-						light->mDirection.z
-					};
-					break;
-				case aiLightSource_POINT:
-					theLight.position = glm::vec3{
-						light->mPosition.x,
-						light->mPosition.y,
-						light->mPosition.z
-					};
-					theLight.attenuationConstant = light->mAttenuationConstant;
-					theLight.attenuationLinear = light->mAttenuationLinear;
-					theLight.attenuationQuadratic = light->mAttenuationQuadratic;
-					break;
-				case aiLightSource_SPOT:
-					theLight.position = glm::vec3{
-						light->mPosition.x,
-						light->mPosition.y,
-						light->mPosition.z
-					};
-					theLight.direction = glm::vec3{
-						light->mDirection.x,
-						light->mDirection.y,
-						light->mDirection.z
-					};
-					theLight.angleInner = light->mAngleInnerCone;
-					theLight.angleOuter = light->mAngleOuterCone;
-
-					theLight.attenuationConstant = light->mAttenuationConstant;
-					theLight.attenuationLinear = light->mAttenuationLinear;
-					theLight.attenuationQuadratic = light->mAttenuationQuadratic;
-					break;
-				case aiLightSource_AMBIENT:
-					break;
-				default:
-					std::cout << "An unsupported light source has been encountered in the model! Skipping it."
-							  << std::endl;
-					continue;
+			if (ai_light->mType == aiLightSource_POINT) {
+				my_light.position = glm::vec3(
+					ai_light->mPosition.x,
+					ai_light->mPosition.y,
+					ai_light->mPosition.z
+				);
+			} else {
+				std::cout << "An unsupported light source has been encountered in the model! Skipping it."
+					<< std::endl;
+				continue;
 			}
 			// Setting general light parameters
-			theLight.colorAmbient = glm::vec3(
-				light->mColorAmbient.r,
-				light->mColorAmbient.g,
-				light->mColorAmbient.b
+			my_light.color_ambient = glm::vec3(
+				ai_light->mColorAmbient.r,
+				ai_light->mColorAmbient.g,
+				ai_light->mColorAmbient.b
 			);
-			theLight.colorDiffuse = glm::vec3(
-				light->mColorDiffuse.r,
-				light->mColorDiffuse.g,
-				light->mColorDiffuse.b
+			my_light.color_diffuse = glm::vec3(
+				ai_light->mColorDiffuse.r,
+				ai_light->mColorDiffuse.g,
+				ai_light->mColorDiffuse.b
 			);
-			theLight.colorSpecular = glm::vec3(
-				light->mColorSpecular.r,
-				light->mColorSpecular.g,
-				light->mColorSpecular.b
+			my_light.color_specular = glm::vec3(
+				ai_light->mColorSpecular.r,
+				ai_light->mColorSpecular.g,
+				ai_light->mColorSpecular.b
 			);
-			lights.push_back(theLight);
+			lights.push_back(my_light);
 		}
 
 	} // End of light processing
@@ -482,6 +450,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 		material.color_diffuse = glm::vec3(ai_color.r, ai_color.g, ai_color.b);
 		mat->Get(AI_MATKEY_COLOR_SPECULAR, ai_color);
 		material.color_specular = glm::vec3(ai_color.r, ai_color.g, ai_color.b);
+		mat->Get(AI_MATKEY_SHININESS, material.shininess);
 
 		const std::vector<Texture>& diffuseTextures{
 			loadMaterialTextures(

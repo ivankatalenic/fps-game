@@ -15,29 +15,12 @@
 #include <mesh.h>
 #include <shader.h>
 
-enum LightType {
-	LightType_DIRECTIONAL,		// The Sun
-	LightType_POINT,			// A light bulb
-	LightType_SPOT,				// A light bulb with a specified maximum light ray angle
-	LightType_AMBIENT			// A light that includes all possible reflections from other lights
-};
-
 struct Light {
-	LightType type;
-
 	glm::vec3 position;
-	glm::vec3 direction; 		// For a directional and spot lights
 
-	glm::vec3 colorAmbient;
-	glm::vec3 colorDiffuse;
-	glm::vec3 colorSpecular;
-
-	float angleInner;			// A spot light has a maximum influence on objects inside this angle
-	float angleOuter;			// A spot light has no influence on objects outside of this angle
-
-	float attenuationConstant;	// Constants for calculating the light intesity
-	float attenuationLinear;	// on object at a distance d from a light source.
-	float attenuationQuadratic;	// lightIntensity = 1 / (attC + attL * d + attQ * d * d)
+	glm::vec3 color_ambient;
+	glm::vec3 color_diffuse;
+	glm::vec3 color_specular;
 };
 
 class Model {

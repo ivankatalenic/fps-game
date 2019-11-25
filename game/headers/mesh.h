@@ -11,21 +11,22 @@
 #include <shader.h>
 
 struct Vertex {
-	const glm::vec3 position;
-	const glm::vec3 normal;
-	const glm::vec2 texCoords;
+	glm::vec3 position;
+	glm::vec3 normal;
+	glm::vec2 texCoords;
 };
 
 struct Polygon {
-	const Vertex vertices[3];
-	const glm::vec3 normal;
-	const float d;
+	Vertex vertices[3];
+	glm::vec3 normal;
+	float d;
 };
 
 struct Material {
 	glm::vec3 color_ambient;
 	glm::vec3 color_diffuse;
 	glm::vec3 color_specular;
+	float shininess;
 };
 
 struct Texture {

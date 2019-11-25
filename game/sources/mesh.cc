@@ -89,9 +89,10 @@ void Mesh::draw(std::shared_ptr<Shader> shader) {
 	glActiveTexture(GL_TEXTURE0);
 
 	// Setting a material properties
-	shader->setVec3("material_ambient", material.color_ambient);
-	shader->setVec3("material_diffuse", material.color_diffuse);
-	shader->setVec3("material_specular", material.color_specular);
+	shader->setVec3("material.color_ambient", material.color_ambient);
+	shader->setVec3("material.color_diffuse", material.color_diffuse);
+	shader->setVec3("material.color_specular", material.color_specular);
+	shader->setFloat("material.shininess", material.shininess);
 
 	// Drawing a mesh
 	glBindVertexArray(VAO);

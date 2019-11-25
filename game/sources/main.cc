@@ -88,6 +88,8 @@ int main(void) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	// Multisample Anti-Aliasing (MSAA) number of samples
+	glfwWindowHint(GLFW_SAMPLES, 4);
 	// glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
 	std::cout << "Refresh rate: " << videoMode->refreshRate << '\n';
 	std::cout << "Resolution: " << screen.width << " * " << screen.height << std::endl;
@@ -133,6 +135,8 @@ int main(void) {
 	// Setting up OpenGL
 	glViewport(0, 0, screen.width, screen.height);
 	glEnable(GL_DEPTH_TEST);
+	// Enable MSAA
+	glEnable(GL_MULTISAMPLE);
 
 	// Setting up shaders
 	light_shader = std::shared_ptr<Shader>(
@@ -142,6 +146,9 @@ int main(void) {
 		new Shader("game/shaders/mesh-vertex.c", "game/shaders/mesh-fragment.c")
 	);
 	mesh_shader->use();
+	mesh_shader->setVec3("light.color_ambient", glm::vec3(0.5f));
+	mesh_shader->setVec3("light.color_diffuse", glm::vec3(0.5f));
+	mesh_shader->setVec3("light.color_specular", glm::vec3(1.0f));
 
 	// Setting up rendering constants
 	// Model terrain("game/models/nanosuit/nanosuit.obj");
@@ -228,7 +235,7 @@ int main(void) {
 			static_cast<float>(LIGHT_ROTATION_ANGULAR_SPEED * current_time)
 		};
 		mesh_shader->setVec3(
-			"light_position",
+			"light.position",
 			LIGHT_ROTATION_CENTER
 				+ glm::vec3(
 					LIGHT_ROTATION_RADIUS * cos(light_rotation_angle),
@@ -236,9 +243,6 @@ int main(void) {
 					LIGHT_ROTATION_RADIUS * sin(light_rotation_angle)
 				)
 		);
-		mesh_shader->setVec3("light_color_ambient", glm::vec3(0.4f));
-		mesh_shader->setVec3("light_color_diffuse", glm::vec3(0.6f));
-		mesh_shader->setVec3("light_color_specular", glm::vec3(0.2f));
 
 		terrain.draw(mesh_shader);
 
@@ -253,7 +257,7 @@ int main(void) {
 		frame_count++;
 		fps_sum += 1.0 / last_frame_duration;
 		constexpr double FPS_DISPLAY_WAIT{1.0};
-		constexpr bool SHOW_FPS{true};
+		constexpr bool SHOW_FPS{false};
 		if (SHOW_FPS
 				&& (current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
 			last_fps_display_time = glfwGetTime();
