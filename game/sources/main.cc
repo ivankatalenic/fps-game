@@ -74,10 +74,10 @@ int main(void) {
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
 		// Uncomment following two lines for fullscreen
-	// screen.width = videoMode->width;
-	// screen.height = videoMode->height;
-	screen.width = 1280;
-	screen.height = 720;
+	screen.width = videoMode->width;
+	screen.height = videoMode->height;
+	// screen.width = 1280;
+	// screen.height = 720;
 	mouse.lastX = screen.width / 2.0;
 	mouse.lastY = screen.height / 2.0;
 
@@ -93,13 +93,13 @@ int main(void) {
 	// glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
 	std::cout << "Refresh rate: " << videoMode->refreshRate << '\n';
 	std::cout << "Resolution: " << screen.width << " * " << screen.height << std::endl;
-	// GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
-	// 	"First GLFW Application", monitor, NULL);
-	GLFWwindow* window = glfwCreateWindow(
-		screen.width, screen.height,
-		"daj_strika", 
-		NULL, NULL
-	);
+	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
+		"fps game", monitor, NULL);
+	// GLFWwindow* window = glfwCreateWindow(
+	// 	screen.width, screen.height,
+	// 	"fps game", 
+	// 	NULL, NULL
+	// );
 
 	if (!window) {
 		// Window creation failed
@@ -257,7 +257,7 @@ int main(void) {
 		frame_count++;
 		fps_sum += 1.0 / last_frame_duration;
 		constexpr double FPS_DISPLAY_WAIT{1.0};
-		constexpr bool SHOW_FPS{false};
+		constexpr bool SHOW_FPS{true};
 		if (SHOW_FPS
 				&& (current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
 			last_fps_display_time = glfwGetTime();
