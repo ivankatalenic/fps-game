@@ -24,6 +24,8 @@
 #include <camera.h>
 #include <model.h>
 #include <debug-help.h>
+#include <bitmap-font.h>
+#include <bitmap-font-renderer.h>
 
 // Constant definitions
 
@@ -135,7 +137,10 @@ int main(void) {
 	// Setting up OpenGL
 	glViewport(0, 0, screen.width, screen.height);
 	glEnable(GL_DEPTH_TEST);
-	// Enable MSAA
+	// Enable the blending for text rendering
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// Enable the MSAA
 	glEnable(GL_MULTISAMPLE);
 
 	// Setting up shaders
@@ -149,6 +154,10 @@ int main(void) {
 	mesh_shader->setVec3("light.color_ambient", glm::vec3(0.5f));
 	mesh_shader->setVec3("light.color_diffuse", glm::vec3(0.5f));
 	mesh_shader->setVec3("light.color_specular", glm::vec3(1.0f));
+
+	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
+	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 154, 256);
+	BitmapFontRenderer text_renderer(font, text_shader);
 
 	// Setting up rendering constants
 	// Model terrain("game/models/nanosuit/nanosuit.obj");
@@ -216,6 +225,7 @@ int main(void) {
 		)};
 
 		// Setting up projection and view matrices
+		mesh_shader->use();
 		mesh_shader->setMat4("mat_model", mat_model);
 		mesh_shader->setMat4("mat_view", mat_view);
 		mesh_shader->setMat4("mat_projection", mat_projection);
@@ -258,17 +268,20 @@ int main(void) {
 		fps_sum += 1.0 / last_frame_duration;
 		constexpr double FPS_DISPLAY_WAIT{1.0};
 		constexpr bool SHOW_FPS{true};
+		double avg_fps;
 		if (SHOW_FPS
 				&& (current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
 			last_fps_display_time = glfwGetTime();
 
-			const double avg_fps{fps_sum / frame_count};
+			avg_fps = fps_sum / frame_count;
 			fps_sum = 0.0;
 			frame_count = 0l;
 			debug::print_var(avg_fps, "Avg. FPS");
 			
 			debug::print_vec(camera->pos, "Position");
 		}
+
+		text_renderer.draw("hello", 0.5f, glm::vec2(0.0f), glm::vec3(1.0f));
 
 		current_time = glfwGetTime();
 		last_frame_duration = current_time - frame_start_time;

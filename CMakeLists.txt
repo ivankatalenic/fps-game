@@ -27,6 +27,8 @@ set(SOURCES
 	game/sources/mesh.cc
 	game/sources/model.cc
 	game/sources/shader.cc
+	game/sources/bitmap-font.cc
+	game/sources/bitmap-font-renderer.cc
 )
 add_executable(thegame ${SOURCES})
 
