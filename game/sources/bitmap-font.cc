@@ -7,10 +7,12 @@
 
 #include <stb_image.h>
 
+#include <debug-help.h>
+
 BitmapFont::BitmapFont(const std::string& bitmap_path, int rows, int columns,
-		int first_ascii_sym, int sym_width, int sym_height):
+		int first_ascii_sym, float width_height):
 	_rows{rows}, _columns{columns},
-	_first_ascii_sym{first_ascii_sym}, _sym_width{sym_width}, _sym_height{sym_height}
+	_first_ascii_sym{first_ascii_sym}, _width_height{width_height}
 {
 	// Load teh texture data into the OpenGL context
 	int image_width, image_height, color_channels;
@@ -52,6 +54,7 @@ void BitmapFont::getCharPosition(char c, float* x, float* y) const {
 	const int row{seq_num / _columns};
 	const int column{seq_num % _columns};
 
+	// Top left corner of the symbol
 	*x = static_cast<float>(column) / _columns;
 	*y = static_cast<float>(row) / _rows;
 }

@@ -137,9 +137,8 @@ int main(void) {
 	// Setting up OpenGL
 	glViewport(0, 0, screen.width, screen.height);
 	glEnable(GL_DEPTH_TEST);
-	// Enable the blending for text rendering
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// Do not render back faces
+	// glEnable(GL_CULL_FACE);
 	// Enable the MSAA
 	glEnable(GL_MULTISAMPLE);
 
@@ -156,8 +155,8 @@ int main(void) {
 	mesh_shader->setVec3("light.color_specular", glm::vec3(1.0f));
 
 	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
-	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 154, 256);
-	BitmapFontRenderer text_renderer(font, text_shader);
+	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
+	BitmapFontRenderer text_renderer(font, text_shader, static_cast<float>(screen.width) / screen.height);
 
 	// Setting up rendering constants
 	// Model terrain("game/models/nanosuit/nanosuit.obj");
@@ -256,8 +255,6 @@ int main(void) {
 
 		terrain.draw(mesh_shader);
 
-		glfwSwapBuffers(window);
-
 
 		// Controls
 		camera->step(static_cast<float>(last_frame_duration));
@@ -276,12 +273,14 @@ int main(void) {
 			avg_fps = fps_sum / frame_count;
 			fps_sum = 0.0;
 			frame_count = 0l;
-			debug::print_var(avg_fps, "Avg. FPS");
-			
-			debug::print_vec(camera->pos, "Position");
 		}
+		
+		text_renderer.draw("Avg. FPS: " + std::to_string(avg_fps), 0.05f, glm::vec2(-1.0f, 0.95f), glm::vec3(1.0f));
+		text_renderer.draw("Position: (" + std::to_string(camera->pos.x)
+				+ ", " + std::to_string(camera->pos.y) + ", " + std::to_string(camera->pos.z) + ")",
+			0.05f, glm::vec2(-1.0f, 0.9f), glm::vec3(1.0f));
+		glfwSwapBuffers(window);
 
-		text_renderer.draw("hello", 0.5f, glm::vec2(0.0f), glm::vec3(1.0f));
 
 		current_time = glfwGetTime();
 		last_frame_duration = current_time - frame_start_time;

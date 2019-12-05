@@ -8,7 +8,7 @@
 class BitmapFont {
 public:
 	BitmapFont(const std::string& bitmap_path, int rows, int columns,
-		int first_ascii_sym, int sym_width, int sym_height);
+		int first_ascii_sym, float width_height);
 	~BitmapFont();
 
 	void getCharPosition(char c, float* x, float* y) const;
@@ -16,8 +16,7 @@ public:
 	int _rows;
 	int _columns;
 	int _first_ascii_sym;
-	int _sym_width;
-	int _sym_height;
+	float _width_height;
 	GLuint _texture_id{0};
 };
 
