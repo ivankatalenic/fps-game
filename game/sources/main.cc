@@ -26,6 +26,7 @@
 #include <debug-help.h>
 #include <bitmap-font.h>
 #include <bitmap-font-renderer.h>
+#include <text-area.h>
 
 // Constant definitions
 
@@ -58,6 +59,8 @@ Mouse mouse;
 std::shared_ptr<Camera> camera;
 std::shared_ptr<Shader> mesh_shader;
 std::shared_ptr<Shader> light_shader;
+
+TextArea* text_a;
 
 // Main function
 int main(void) {
@@ -157,6 +160,9 @@ int main(void) {
 	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
 	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
 	BitmapFontRenderer text_renderer(font, text_shader, static_cast<float>(screen.width) / screen.height);
+	TextArea text_area(text_renderer, {-1.0f, 0.0f}, {1.0f, 1.0f}, 0.05f, {1.0f, 1.0f, 1.0f});
+	text_a = &text_area;
+
 
 	// Setting up rendering constants
 	// Model terrain("game/models/nanosuit/nanosuit.obj");
@@ -279,6 +285,7 @@ int main(void) {
 		text_renderer.draw("Position: (" + std::to_string(camera->pos.x)
 				+ ", " + std::to_string(camera->pos.y) + ", " + std::to_string(camera->pos.z) + ")",
 			0.05f, glm::vec2(-1.0f, 0.9f), glm::vec3(1.0f));
+		text_area.draw();
 		glfwSwapBuffers(window);
 
 
@@ -302,6 +309,7 @@ void key_callback(GLFWwindow* window,
 
 	} else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
 		camera->setDirection(DIRECTION_FORWARD, true);
+		text_a->addLine("W pressed");
 	} else if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
 		camera->setDirection(DIRECTION_FORWARD, false);
 
@@ -312,6 +320,7 @@ void key_callback(GLFWwindow* window,
 
 	} else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 		camera->setDirection(DIRECTION_BACKWARD, true);
+		text_a->addLine("S pressed");
 	} else if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
 		camera->setDirection(DIRECTION_BACKWARD, false);
 
@@ -322,6 +331,7 @@ void key_callback(GLFWwindow* window,
 
 	} else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) {
 		camera->setDirection(DIRECTION_UP, true);
+		text_a->addLine("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in");
 	} else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) {
 		camera->setDirection(DIRECTION_UP, false);
 

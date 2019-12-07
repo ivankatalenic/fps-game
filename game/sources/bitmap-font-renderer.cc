@@ -1,9 +1,5 @@
 #include <bitmap-font-renderer.h>
 
-#include <string>
-
-#include <glad/glad.h>
-
 BitmapFontRenderer::BitmapFontRenderer(const BitmapFont& font, const Shader& bitmap_shader,
 		float screen_width_height):
 	_font{font}, _bitmap_shader{bitmap_shader}, _screen_width_height{screen_width_height} {
@@ -22,12 +18,8 @@ BitmapFontRenderer::BitmapFontRenderer(const BitmapFont& font, const Shader& bit
 	glBindVertexArray(0);
 }
 
-BitmapFontRenderer::~BitmapFontRenderer() {
-
-}
-
-void BitmapFontRenderer::draw(const std::string& text, float scale,
-		glm::vec2 position, glm::vec3 color) {
+void BitmapFontRenderer::draw(std::string_view text, float scale,
+		glm::vec2 position, glm::vec3 color) const {
 
 	_bitmap_shader.use();
 	_bitmap_shader.setVec3("color", color);
@@ -46,7 +38,7 @@ void BitmapFontRenderer::draw(const std::string& text, float scale,
 	const float tex_h{1.0f / _font._rows};
 	const float cell_h{scale};
 	const float cell_w{cell_h * static_cast<float>(_font._rows) / (_font._columns * _screen_width_height)};
-	for (std::string::const_iterator c{text.begin()}; c != text.end(); ++c) {
+	for (std::string_view::const_iterator c{text.cbegin()}; c != text.end(); ++c) {
 		float tex_x, tex_y;
 		_font.getCharPosition(*c, &tex_x, &tex_y);
 
@@ -74,4 +66,8 @@ void BitmapFontRenderer::draw(const std::string& text, float scale,
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 
+}
+
+float BitmapFontRenderer::getSymWidthHeight() const {
+	return _font._width_height;
 }
