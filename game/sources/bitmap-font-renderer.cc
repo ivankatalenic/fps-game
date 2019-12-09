@@ -9,8 +9,16 @@ BitmapFontRenderer::BitmapFontRenderer(const BitmapFont& font, const Shader& bit
 	
 	glBindVertexArray(_vao);
 	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+	GLfloat vertices[6][4]{
+		{0.0f, 1.0f, 0.0f, 0.0f},
+		{0.0f, 0.0f, 0.0f, 1.0f},
+		{1.0f, 0.0f, 1.0f, 1.0f},
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_STREAM_DRAW);
+		{0.0f, 1.0f, 0.0f, 0.0f},
+		{1.0f, 0.0f, 1.0f, 1.0f},
+		{1.0f, 1.0f, 1.0f, 0.0f}
+	};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, vertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
 
@@ -41,20 +49,20 @@ void BitmapFontRenderer::draw(std::string_view text, float scale,
 	for (std::string_view::const_iterator c{text.cbegin()}; c != text.end(); ++c) {
 		float tex_x, tex_y;
 		_font.getCharPosition(*c, &tex_x, &tex_y);
-
-		GLfloat vertices[6][4] = {
-			{position.x + offset_x, 		 position.y + cell_h, tex_x, 		 tex_y		  },
-			{position.x + offset_x, 	     position.y, 		  tex_x, 		 tex_y + tex_h},
-			{position.x + offset_x + cell_w, position.y, 		  tex_x + tex_w, tex_y + tex_h},
-
-			{position.x + offset_x, 		 position.y + cell_h, tex_x, 		 tex_y	 	  },
-			{position.x + offset_x + cell_w, position.y, 		  tex_x + tex_w, tex_y + tex_h},
-			{position.x + offset_x + cell_w, position.y + cell_h, tex_x + tex_w, tex_y	 	  }
-		};
-
-		glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// Update the position matrix uniform
+		glm::mat3 pos_matrix(
+			cell_w, 0.0f, 0.0f,
+			0.0f, cell_h, 0.0f,
+			position.x + offset_x, position.y, 1.0f
+		);
+		_bitmap_shader.setMat3("pos_matrix", pos_matrix);
+		// Update the texture matrix uniform
+		glm::mat3 tex_matrix(
+			tex_w, 0.0f, 0.0f,
+			0.0f, tex_h, 0.0f,
+			tex_x, tex_y, 1.0f
+		);
+		_bitmap_shader.setMat3("tex_matrix", tex_matrix);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		offset_x += (_font._width_height * scale / _screen_width_height);
