@@ -10,7 +10,11 @@
 
 class TextArea {
 public:
-	TextArea(const FontRenderer& renderer, glm::vec2 position, glm::vec2 dimension,
+	/**
+	 * The position argument specifies the bottom left corner of the text area.
+	 */
+	TextArea(const FontRenderer& renderer,
+		glm::vec2 position, glm::vec2 dimension,
 		float text_scale, glm::vec3 text_color);
 
 	void addLine(const std::string& line);

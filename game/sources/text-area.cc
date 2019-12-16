@@ -14,16 +14,15 @@ void TextArea::addLine(const std::string& line) {
 }
 
 void TextArea::draw() {
-	float curr_row_y{_position.y - _dimension.y};
-	const float sym_width{_renderer.getSymWidthHeight() * _text_scale};
-	const int chars_in_row{static_cast<int>(_dimension.x / sym_width)};
+	float curr_row_y{_position.y};
+	const int chars_in_row{_renderer.getCharsInRow(_dimension.x, _text_scale)};
 	if (chars_in_row < 1) {
 		return;
 	}
 	// Start drawing from the last row to the first
 	for (std::vector<std::string>::const_reverse_iterator it{_lines.crbegin()}; it != _lines.crend(); ++it) {
 		// Check if the row could be fully displayed inside the area
-		if (curr_row_y > _position.y) {
+		if (curr_row_y > _position.y + _dimension.y - _text_scale) {
 			break;
 		}
 
@@ -40,7 +39,7 @@ void TextArea::draw() {
 				}
 				curr_row_y += _text_scale;
 				// Check if the next row could be fully displayed inside the area
-				if (curr_row_y > _position.y) {
+				if (curr_row_y > _position.y + _dimension.y - _text_scale) {
 					break;
 				}
 			}

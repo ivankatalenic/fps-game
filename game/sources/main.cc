@@ -160,7 +160,7 @@ int main(void) {
 	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
 	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
 	BitmapFontRenderer text_renderer(font, text_shader, static_cast<float>(screen.width) / screen.height);
-	TextArea text_area(text_renderer, {-1.0f, 0.0f}, {1.0f, 1.0f}, 0.05f, {1.0f, 1.0f, 1.0f});
+	TextArea text_area(text_renderer, {-1.0f, -1.0f}, {0.75f, 1.0f}, 0.05f, {1.0f, 1.0f, 1.0f});
 	text_a = &text_area;
 
 

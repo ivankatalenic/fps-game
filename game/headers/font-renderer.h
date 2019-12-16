@@ -7,9 +7,11 @@
 
 class FontRenderer {
 public:
-	// Position is the bottom left corner
+	/**
+	 * The position argument specifies the bottom left corner of the text component.
+	 */
 	virtual void draw(std::string_view text, float scale, glm::vec2 position, glm::vec3 color) const = 0;
-	virtual float getSymWidthHeight() const = 0;
+	virtual int getCharsInRow(float row_length, float text_height) const = 0;
 	// Enabling a derived class to properly destruct itself
 	virtual ~FontRenderer() {};
 };

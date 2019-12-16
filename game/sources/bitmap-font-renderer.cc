@@ -76,6 +76,6 @@ void BitmapFontRenderer::draw(std::string_view text, float scale,
 
 }
 
-float BitmapFontRenderer::getSymWidthHeight() const {
-	return _font._width_height;
+int BitmapFontRenderer::getCharsInRow(float row_length, float text_height) const {
+	return static_cast<int>((row_length * _screen_width_height) / (_font._width_height * text_height));
 }
