@@ -1,4 +1,11 @@
-game/*.sublime-workspace
+*.sublime-workspace
+*.sublime-project
+.vscode
+Makefile
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
+
+lib/glfw/**
+
+*.exe
