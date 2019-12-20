@@ -4,7 +4,7 @@ Work in progress...
 
 ## Cloning the project
 
-This project uses *git submodules*, so when you are cloning the project clone it with the following command:
+This project uses *git submodules*, so when you are cloning the project clone it with the following command:\
 `git clone --recurse-submodules git@github.com:ivankatalenic/fps-game.git`
 
 The submodules the project uses are:
@@ -15,7 +15,7 @@ The submodules the project uses are:
 
 To successfully build this project you must have modern C++ compiler, *cmake*, and *make* programs.
 
-Open the terminal, and set your working directory to *fps-game*.
+Open a terminal, and set your working directory to *fps-game*.
 
 ### On Linux
 
@@ -28,9 +28,9 @@ Steps for building the project:
 
 ### On Windows
 
-This project was built, and tested on Windows 10 with [msys2's](https://www.msys2.org/) *gcc 9.2.0*.
+This project was built, and tested on *Windows 10* with [MSYS2's](https://www.msys2.org/) *gcc 9.2.0*.
 
-Steps for building the project with *msys2*:
+Steps for building the project with *MSYS2*:
 1. `cmake -G "MSYS Makefiles" .`
 2. `make -j <number-of-cores>`
 3. `thegame`
