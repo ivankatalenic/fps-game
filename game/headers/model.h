@@ -5,11 +5,6 @@
 #include <string>
 #include <memory>
 
-#include <assimp/scene.h>
-#include <assimp/mesh.h>
-#include <assimp/material.h>
-#include <assimp/light.h>
-
 #include <glm/glm.hpp>
 
 #include <mesh.h>
@@ -26,7 +21,9 @@ struct Light {
 class Model {
 public:
 	// Constructors
-	Model(const char* path);
+	Model() = default;
+	Model(const std::vector<Mesh>& meshes, const std::vector<Light>& lights);
+	Model(Model&& model) noexcept;
 
 	// Methods
 	void draw(std::shared_ptr<Shader> shader);
@@ -36,23 +33,9 @@ public:
 		glm::vec3& new_step,
 		int recursion_depth = 0
 	);
-
 private:
-	std::string directory;
-
-	std::vector<Mesh> meshes;
-	std::vector<Light> lights;
-	std::vector<Texture> loadedTextures;
-
-	// Methods
-	void loadModel(const std::string& path);
-	void processNode(aiNode* node, const aiScene* scene);
-	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
-	std::vector<Texture> loadMaterialTextures(
-		aiMaterial* mat,
-		aiTextureType type,
-		std::string typeName
-	);
+	std::vector<Mesh> _meshes;
+	std::vector<Light> _lights;
 };
 
 #endif

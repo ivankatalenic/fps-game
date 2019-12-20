@@ -30,6 +30,7 @@ set(SOURCES
 	game/sources/bitmap-font.cc
 	game/sources/bitmap-font-renderer.cc
 	game/sources/text-area.cc
+	game/sources/assimp-model-loader.cc
 )
 add_executable(thegame ${SOURCES})
 

@@ -23,6 +23,8 @@
 #include <shader.h>
 #include <camera.h>
 #include <model.h>
+#include <model-loader.h>
+#include <assimp-model-loader.h>
 #include <debug-help.h>
 #include <bitmap-font.h>
 #include <bitmap-font-renderer.h>
@@ -165,13 +167,8 @@ int main(void) {
 
 
 	// Setting up rendering constants
-	// Model terrain("game/models/nanosuit/nanosuit.obj");
-	// Model terrain("game/models/custom/Mapa.obj");
-	// Model terrain("game/models/body/DefaultBody.obj");
-	// Model terrain("game/models/plane/plane.obj");
-	// Model terrain("game/models/filko/filko.obj");
-	// Model terrain("game/models/ramp/ramp.obj");
-	Model terrain("game/models/plane-cube/plane-cube.obj");
+	AssimpModelLoader model_loader;
+	Model terrain(std::move(model_loader.loadModel("game/models/plane-cube/plane-cube.obj")));
 
 	camera = std::shared_ptr<Camera>(
 		new Camera(
