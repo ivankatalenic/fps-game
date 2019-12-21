@@ -29,6 +29,7 @@
 #include <bitmap-font.h>
 #include <bitmap-font-renderer.h>
 #include <text-area.h>
+#include <opengl-drawable.h>
 
 // Constant definitions
 
@@ -148,11 +149,11 @@ int main(void) {
 	glEnable(GL_MULTISAMPLE);
 
 	// Setting up shaders
-	light_shader = std::shared_ptr<Shader>(
-		new Shader("game/shaders/mesh-vertex.c", "game/shaders/light-fragment.c")
+	light_shader = std::make_shared<Shader>(
+		"game/shaders/mesh-vertex.c", "game/shaders/light-fragment.c"
 	);
-	mesh_shader = std::shared_ptr<Shader>(
-		new Shader("game/shaders/mesh-vertex.c", "game/shaders/mesh-fragment.c")
+	mesh_shader = std::make_shared<Shader>(
+		"game/shaders/mesh-vertex.c", "game/shaders/mesh-fragment.c"
 	);
 	mesh_shader->use();
 	mesh_shader->setVec3("light.color_ambient", glm::vec3(0.5f));
@@ -168,7 +169,8 @@ int main(void) {
 
 	// Setting up rendering constants
 	AssimpModelLoader model_loader;
-	Model terrain(std::move(model_loader.loadModel("game/models/plane-cube/plane-cube.obj")));
+	Model terrain{model_loader.loadModel("game/models/plane-cube/plane-cube.obj")};
+	std::vector<OpenGLDrawable> drawables{OpenGLDrawable::createDrawablesFromModel(terrain, mesh_shader)};
 
 	camera = std::shared_ptr<Camera>(
 		new Camera(
@@ -256,7 +258,9 @@ int main(void) {
 				)
 		);
 
-		terrain.draw(mesh_shader);
+		for (const auto& drawable : drawables) {
+			drawable.draw();
+		}
 
 
 		// Controls

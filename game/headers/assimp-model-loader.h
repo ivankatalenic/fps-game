@@ -3,6 +3,8 @@
 
 #include <model-loader.h>
 
+#include <memory>
+
 #include <assimp/mesh.h>
 #include <assimp/scene.h>
 #include <assimp/material.h>
@@ -17,8 +19,8 @@ private:
     Assimp::Importer _importer;
     std::vector<Texture> _loaded_textures;
 
-    void processNode(std::vector<Mesh>& meshes, aiNode* node, const aiScene* scene);
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+    void processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* scene);
+    std::shared_ptr<Mesh> processMesh(aiMesh* mesh, const aiScene* scene);
     std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& type_name);
 };
 

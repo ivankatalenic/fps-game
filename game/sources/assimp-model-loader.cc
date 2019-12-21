@@ -1,51 +1,12 @@
 #include <assimp-model-loader.h>
 
-#include <stdexcept>
-
 #include <assimp/Importer.hpp>
 #include <assimp/vector3.h>
 #include <assimp/types.h>
 #include <assimp/postprocess.h>
 
-#include <stb_image.h>
-
 #include <debug-help.h>
 #include <math-aux.h>
-
-static unsigned int loadTextureFromFile(std::string file_path) {
-	int image_width, image_height, color_channels;
-	unsigned char* data;
-	unsigned int texture_id{0};
-
-	data = stbi_load(file_path.c_str(), &image_width, &image_height, &color_channels, 0);
-	if (data != NULL) {
-		GLenum format{GL_RGB};
-		if (color_channels == 1) {
-			format = GL_RED;
-		} else if (color_channels == 3) {
-			format = GL_RGB;
-		} else if (color_channels == 4) {
-			format = GL_RGBA;
-		}
-
-		glGenTextures(1, &texture_id);
-		glBindTexture(GL_TEXTURE_2D, texture_id);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glTexImage2D(GL_TEXTURE_2D, 0, format, image_width, image_height, 0, format, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-
-		stbi_image_free(data);
-	} else {
-		std::cout << "Cannot load a texture data! Path: " << file_path << std::endl;
-		stbi_image_free(data);
-	}
-	return texture_id;
-}
 
 AssimpModelLoader::AssimpModelLoader() {
 
@@ -64,7 +25,7 @@ Model AssimpModelLoader::loadModel(const std::string& path) {
 		return Model();
 	}
 	// Process root node
-	std::vector<Mesh> meshes;
+	std::vector<std::shared_ptr<Mesh>> meshes;
 	processNode(meshes, scene->mRootNode, scene);
 	// Process lights
 	std::vector<Light> lights;
@@ -107,7 +68,7 @@ Model AssimpModelLoader::loadModel(const std::string& path) {
 	return Model(meshes, lights);
 }
 
-void AssimpModelLoader::processNode(std::vector<Mesh>& meshes, aiNode* node, const aiScene* scene) {
+void AssimpModelLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* scene) {
 	// Process all meshes
 	for (unsigned int i{0u}; i < node->mNumMeshes; i++) {
 		unsigned int mesh_index{node->mMeshes[i]};
@@ -124,7 +85,7 @@ void AssimpModelLoader::processNode(std::vector<Mesh>& meshes, aiNode* node, con
 	}
 }
 
-Mesh AssimpModelLoader::processMesh(aiMesh* mesh, const aiScene* scene) {
+std::shared_ptr<Mesh> AssimpModelLoader::processMesh(aiMesh* mesh, const aiScene* scene) {
 	if (!mesh->HasPositions()) {
 		throw "Mesh has no vertex positions!";
 	}
@@ -211,7 +172,7 @@ Mesh AssimpModelLoader::processMesh(aiMesh* mesh, const aiScene* scene) {
 	}
 	
 	// Finalizing
-	return Mesh(vertices, textures, material);
+	return std::make_shared<Mesh>(vertices, textures, material);
 }
 
 std::vector<Texture> AssimpModelLoader::loadMaterialTextures(
@@ -223,26 +184,7 @@ std::vector<Texture> AssimpModelLoader::loadMaterialTextures(
 	for (unsigned int i{0u}; i < mat->GetTextureCount(type); i++) {
 		aiString path;
 		if (mat->GetTexture(type, i, &path) == aiReturn_SUCCESS) {
-			// Check if a texture was loaded before
-			bool already_loaded{false};
-			for (const Texture& texture : _loaded_textures) {
-				if (std::strcmp(texture.path.c_str(), path.C_Str()) == 0) {
-					// Reuse the loaded texture
-					textures.push_back(texture);
-					already_loaded = true;
-					break;
-				}
-			}
-			if (!already_loaded) {
-				// Load the texture
-				Texture texture{
-					loadTextureFromFile(path.C_Str()),
-					type_name,
-					path.C_Str()
-				};
-				textures.push_back(texture);
-				_loaded_textures.push_back(texture);
-			}
+			textures.push_back({type_name, path.C_Str()});
 		} else {
 			std::cout << "Error: Cannot load a texture!" << std::endl;
 		}

@@ -13,7 +13,7 @@ The submodules the project uses are:
 
 ## Building the project
 
-To successfully build this project you must have modern C++ compiler, *cmake*, and *make* programs.
+To successfully build this project you must have a modern C++ compiler, *cmake*, and *make* programs.
 
 Open a terminal, and set your working directory to *fps-game*.
 

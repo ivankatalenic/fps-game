@@ -16,19 +16,8 @@ struct collision_result {
 	glm::vec3 normal;
 };
 
-Model::Model(const std::vector<Mesh>& meshes, const std::vector<Light>& lights):
-		_meshes{meshes}, _lights{lights} {
-}
-
-Model::Model(Model&& model) noexcept:
-		_meshes{std::move(model._meshes)}, _lights{std::move(model._lights)} {
-	debug::print_str("Model's move construtor called!");
-}
-
-void Model::draw(std::shared_ptr<Shader> shader) {
-	for (auto& mesh : _meshes) {
-		mesh.draw(shader);
-	}
+Model::Model(const std::vector<std::shared_ptr<Mesh>>& ameshes, const std::vector<Light>& alights):
+		meshes{ameshes}, lights{alights} {
 }
 
 /**
@@ -63,8 +52,8 @@ bool Model::checkCollision(
 	collision_result main_collision{};
 	main_collision.relative_distance = FLT_MAX;
 
-	for (Mesh& mesh : _meshes) {
-		for (Polygon& polygon : mesh.polygons) {
+	for (std::shared_ptr<Mesh>& mesh : meshes) {
+		for (Polygon& polygon : mesh->polygons) {
 			
 			bool is_triangle_collision{false};
 			collision_result triangle_collision;

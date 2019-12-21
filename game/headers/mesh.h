@@ -3,12 +3,8 @@
 
 #include <vector>
 #include <string>
-#include <memory>
 
-#include <glad/glad.h>
 #include <glm/glm.hpp>
-
-#include <shader.h>
 
 struct Vertex {
 	glm::vec3 position;
@@ -30,12 +26,9 @@ struct Material {
 };
 
 struct Texture {
-	unsigned int id;
 	std::string type;
 	std::string path;
 };
-
-struct Light;
 
 class Mesh {
 public:
@@ -51,13 +44,6 @@ public:
 		std::vector<Texture>& aTextures,
 		Material amaterial
 	);
-	void draw(std::shared_ptr<Shader> shader);
-
-private:
-	unsigned int VAO;
-	unsigned int VBO;
-
-	void setupMesh();
 };
 
 #endif
