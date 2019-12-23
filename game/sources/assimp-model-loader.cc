@@ -12,7 +12,7 @@ AssimpModelLoader::AssimpModelLoader() {
 
 }
 
-Model AssimpModelLoader::loadModel(const std::string& path) {
+std::shared_ptr<Model> AssimpModelLoader::loadModel(const std::string& path) {
 	const aiScene* scene{
 		_importer.ReadFile(
 			path,
@@ -22,7 +22,7 @@ Model AssimpModelLoader::loadModel(const std::string& path) {
 	if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
 		std::cout << "The model file wasn't read successfully! Error message: \n";
 		std::cout << '\t' << _importer.GetErrorString() << std::endl;
-		return Model();
+		return std::make_shared<Model>();
 	}
 	// Process root node
 	std::vector<std::shared_ptr<Mesh>> meshes;
@@ -65,7 +65,7 @@ Model AssimpModelLoader::loadModel(const std::string& path) {
 			lights.push_back(my_light);
 		}
 	} // End of light processing
-	return Model(meshes, lights);
+	return std::make_shared<Model>(meshes, lights);
 }
 
 void AssimpModelLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* scene) {

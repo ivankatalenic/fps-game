@@ -16,7 +16,7 @@ struct OpenGLTexture {
 
 class OpenGLDrawable : public Drawable {
 public:
-	OpenGLDrawable(std::shared_ptr<Mesh> mesh, std::shared_ptr<Shader> shader);
+	OpenGLDrawable(std::shared_ptr<Mesh>& mesh, std::shared_ptr<Shader>& shader);
 
 	void draw() const override;
 private:
@@ -31,7 +31,7 @@ private:
 	void setupVertices();
 	void setupTextures();
 public:
-	static std::vector<OpenGLDrawable> createDrawablesFromModel(const Model& model, std::shared_ptr<Shader> shader);
+	static std::vector<OpenGLDrawable> createDrawablesFromModel(std::shared_ptr<Model>& model, std::shared_ptr<Shader>& shader);
 };
 
 #endif // OPENGL_DRAWABLE_H

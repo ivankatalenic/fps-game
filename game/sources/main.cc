@@ -169,21 +169,19 @@ int main(void) {
 
 	// Setting up rendering constants
 	AssimpModelLoader model_loader;
-	Model terrain{model_loader.loadModel("game/models/plane-cube/plane-cube.obj")};
+	std::shared_ptr<Model> terrain{model_loader.loadModel("game/models/plane-cube/plane-cube.obj")};
 	std::vector<OpenGLDrawable> drawables{OpenGLDrawable::createDrawablesFromModel(terrain, mesh_shader)};
 
-	camera = std::shared_ptr<Camera>(
-		new Camera(
-			glm::pi<float>() / 2.5f, 						// FOV in radians
-			0.1f,											// Near clip plane
-			100.0f,											// Far clip plane
-			0.0f,											// Yaw: Angle from x-axis
-			0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
-			glm::vec3(2.0f, 2.0f, 2.0f),					// Position
-			4.0f,											// Movement speed
-			0.001f,											// Mouse sensitivity
-			terrain
-		)
+	camera = std::make_shared<Camera>(
+		glm::pi<float>() / 2.5f, 						// FOV in radians
+		0.1f,											// Near clip plane
+		100.0f,											// Far clip plane
+		0.0f,											// Yaw: Angle from x-axis
+		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
+		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
+		4.0f,											// Movement speed
+		0.001f,											// Mouse sensitivity
+		terrain
 	);
 
 	// Main render loop

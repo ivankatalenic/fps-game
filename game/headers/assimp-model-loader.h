@@ -14,7 +14,7 @@
 class AssimpModelLoader : public ModelLoader {
 public:
     AssimpModelLoader();
-    Model loadModel(const std::string& path) override;
+    std::shared_ptr<Model> loadModel(const std::string& path) override;
 private:
     Assimp::Importer _importer;
     std::vector<Texture> _loaded_textures;

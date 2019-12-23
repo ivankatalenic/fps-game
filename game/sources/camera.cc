@@ -10,7 +10,7 @@
 Camera::Camera(float aFov, float aClipNear, float aClipFar,
 		float aYaw, float aPitch, glm::vec3 aPos,
 		float aSpeed, float aSensitivity,
-		Model& aModel):
+		std::shared_ptr<Model>& aModel):
 
 			fov{aFov},
 			clipNear{aClipNear},
@@ -45,7 +45,7 @@ Camera::Camera(float aFov, float aClipNear, float aClipFar,
 void Camera::step(float timeDelta) {
 	glm::vec3 step(timeDelta * speed * direction);
 	glm::vec3 new_step;
-	bool collision_detected{model.checkCollision(pos, step, new_step)};
+	bool collision_detected{model->checkCollision(pos, step, new_step)};
 	if (collision_detected) {
 		pos += new_step;
 	} else {

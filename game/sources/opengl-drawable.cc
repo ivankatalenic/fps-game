@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <stb_image.h>
 
-OpenGLDrawable::OpenGLDrawable(std::shared_ptr<Mesh> mesh, std::shared_ptr<Shader> shader):
+OpenGLDrawable::OpenGLDrawable(std::shared_ptr<Mesh>& mesh, std::shared_ptr<Shader>& shader):
 		_mesh{mesh}, _shader{shader} {
 	setupVertices();
 	setupTextures();
@@ -115,9 +115,10 @@ static unsigned int load_texture_from_file(const std::string& file_path) {
 	return texture_id;
 }
 
-std::vector<OpenGLDrawable> OpenGLDrawable::createDrawablesFromModel(const Model& model, std::shared_ptr<Shader> shader) {
+std::vector<OpenGLDrawable> OpenGLDrawable::createDrawablesFromModel(
+		std::shared_ptr<Model>& model, std::shared_ptr<Shader>& shader) {
 	std::vector<OpenGLDrawable> drawables;
-	for (const std::shared_ptr<Mesh>& mesh : model.meshes) {
+	for (std::shared_ptr<Mesh>& mesh : model->meshes) {
 		drawables.emplace_back(mesh, shader);
 	}
 	return drawables;

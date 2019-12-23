@@ -1,6 +1,8 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <memory>
+
 #include <glm/glm.hpp>
 #include <model.h>
 
@@ -33,7 +35,7 @@ public:
 	
 	float sensitivity;
 
-	Model& model;
+	std::shared_ptr<Model> model;
 
 	bool activeDirections[6];
 
@@ -42,7 +44,7 @@ public:
 	Camera(float aFov, float aClipNear, float aClipFar,
 		float aYaw, float aPitch, glm::vec3 aPos,
 		float aSpeed, float aSensitivity,
-		Model& aModel);
+		std::shared_ptr<Model>& aModel);
 
 	// Methods
 	void step(float timeDelta);
