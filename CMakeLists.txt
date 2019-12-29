@@ -38,18 +38,18 @@ add_executable(thegame ${SOURCES})
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(lib/glfw)
+add_subdirectory(external/glfw)
 
 set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL_PDB OFF CACHE BOOL "" FORCE)
-add_subdirectory(lib/assimp)
+add_subdirectory(external/assimp)
 
 target_compile_options(thegame PUBLIC -Wall -O2)
 target_compile_features(thegame PUBLIC cxx_std_17)
 
-target_include_directories(thegame PUBLIC include lib/glfw/include game/headers .)
+target_include_directories(thegame PUBLIC external external/stb external/glm external/glfw/include game/headers .)
 
 # target_link_directories(thegame lib)
 if (UNIX)

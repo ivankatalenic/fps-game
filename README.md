@@ -10,6 +10,8 @@ This project uses *git submodules*, so when you are cloning the project clone it
 The submodules the project uses are:
 - [glfw](https://github.com/glfw/glfw)
 - [assimp](https://github.com/assimp/assimp)
+- [glm](https://github.com/g-truc/glm)
+- [stb](https://github.com/nothings/stb)
 
 ## Building the project
 
@@ -19,7 +21,7 @@ Open a terminal, and set your working directory to *fps-game*.
 
 ### On Linux
 
-This project was built, and tested on Linux Mint with *gcc-8*.
+This project was built, and tested on *Linux Mint* with *gcc-8*.
 
 Steps for building the project:
 1. `cmake .`

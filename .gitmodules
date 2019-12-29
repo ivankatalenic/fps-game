@@ -1,6 +1,12 @@
-[submodule "lib/assimp"]
-	path = lib/assimp
+[submodule "external/assimp"]
+	path = external/assimp
 	url = git@github.com:assimp/assimp.git
-[submodule "lib/glfw"]
-	path = lib/glfw
+[submodule "external/glfw"]
+	path = external/glfw
 	url = git@github.com:glfw/glfw.git
+[submodule "external/glm"]
+	path = external/glm
+	url = git@github.com:g-truc/glm.git
+[submodule "external/stb"]
+	path = external/stb
+	url = git@github.com:nothings/stb.git
