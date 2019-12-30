@@ -33,7 +33,7 @@ void BitmapFontRenderer::draw(std::string_view text, float scale,
 	_bitmap_shader.setVec3("color", color);
 	_bitmap_shader.setInt("tex", 0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, _font._texture_id);
+	glBindTexture(GL_TEXTURE_2D, _font.getTextureId());
 	glBindVertexArray(_vao);
 
 	glDisable(GL_DEPTH_TEST);
@@ -42,10 +42,10 @@ void BitmapFontRenderer::draw(std::string_view text, float scale,
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	float offset_x{0.0f};
-	const float tex_w{1.0f / _font._columns};
-	const float tex_h{1.0f / _font._rows};
+	const float tex_w{1.0f / _font.getColumns()};
+	const float tex_h{1.0f / _font.getRows()};
 	const float cell_h{scale};
-	const float cell_w{cell_h * static_cast<float>(_font._rows) / (_font._columns * _screen_width_height)};
+	const float cell_w{cell_h * static_cast<float>(_font.getRows()) / (_font.getColumns() * _screen_width_height)};
 	for (std::string_view::const_iterator c{text.cbegin()}; c != text.end(); ++c) {
 		float tex_x, tex_y;
 		_font.getCharPosition(*c, &tex_x, &tex_y);
@@ -65,7 +65,7 @@ void BitmapFontRenderer::draw(std::string_view text, float scale,
 		_bitmap_shader.setMat3("tex_matrix", tex_matrix);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
-		offset_x += (_font._width_height * scale / _screen_width_height);
+		offset_x += (_font.getWidthHeight() * scale / _screen_width_height);
 	}
 
 	glBindVertexArray(0);
@@ -76,6 +76,6 @@ void BitmapFontRenderer::draw(std::string_view text, float scale,
 
 }
 
-int BitmapFontRenderer::getCharsInRow(float row_length, float text_height) const {
-	return static_cast<int>((row_length * _screen_width_height) / (_font._width_height * text_height));
+float BitmapFontRenderer::getStringLength(std::string_view text, float scale) const {
+	return (text.length() * _font.getWidthHeight() * scale) / _screen_width_height;
 }

@@ -55,3 +55,19 @@ void BitmapFont::getCharPosition(char c, float* x, float* y) const {
 	*x = static_cast<float>(column) / _columns;
 	*y = static_cast<float>(row) / _rows;
 }
+
+float BitmapFont::getWidthHeight() const {
+	return _width_height;
+}
+
+int BitmapFont::getRows() const {
+	return _rows;
+}
+
+int BitmapFont::getColumns() const {
+	return _columns;
+}
+
+unsigned int BitmapFont::getTextureId() const {
+	return _texture_id;
+}

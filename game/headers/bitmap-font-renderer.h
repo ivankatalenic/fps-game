@@ -14,7 +14,7 @@ public:
 		float screen_width_height);
 
 	void draw(std::string_view text, float scale, glm::vec2 position, glm::vec3 color) const override;
-	int getCharsInRow(float row_length, float text_height) const override;
+	float getStringLength(std::string_view text, float scale) const override;
 private:
 	const BitmapFont& _font;
 	const Shader& _bitmap_shader;
