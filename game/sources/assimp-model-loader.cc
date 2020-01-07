@@ -1,16 +1,11 @@
 #include <assimp-model-loader.h>
 
-#include <assimp/Importer.hpp>
 #include <assimp/vector3.h>
 #include <assimp/types.h>
 #include <assimp/postprocess.h>
 
 #include <debug-help.h>
 #include <math-aux.h>
-
-AssimpModelLoader::AssimpModelLoader() {
-
-}
 
 std::shared_ptr<Model> AssimpModelLoader::loadModel(const std::string& path) {
 	const aiScene* scene{
@@ -65,7 +60,7 @@ std::shared_ptr<Model> AssimpModelLoader::loadModel(const std::string& path) {
 			lights.push_back(my_light);
 		}
 	} // End of light processing
-	return std::make_shared<Model>(meshes, lights);
+	return std::make_shared<Model>(std::move(meshes), std::move(lights));
 }
 
 void AssimpModelLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* scene) {
@@ -172,7 +167,7 @@ std::shared_ptr<Mesh> AssimpModelLoader::processMesh(aiMesh* mesh, const aiScene
 	}
 	
 	// Finalizing
-	return std::make_shared<Mesh>(vertices, textures, material);
+	return std::make_shared<Mesh>(std::move(vertices), std::move(textures), material);
 }
 
 std::vector<Texture> AssimpModelLoader::loadMaterialTextures(

@@ -1,44 +1,28 @@
 #include "fps-game-config.h"
 
-#include <fstream>
+// System classes
 #include <iostream>
 #include <string>
 #include <memory>
-#include <filesystem>
 
+// Library classes
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
-#include <cmath>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/ext/scalar_constants.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-// Custom classes
-#include <shader.h>
+// Private classes
+#include <service-locator.h>
+#include <screen.h>
 #include <camera.h>
 #include <model.h>
 #include <model-loader.h>
-#include <assimp-model-loader.h>
+#include <model-renderer.h>
 #include <debug-help.h>
 #include <bitmap-font.h>
 #include <bitmap-font-renderer.h>
 #include <text-area.h>
-#include <opengl-drawable.h>
-
-// Constant definitions
 
 // Structure definitions
-struct Screen {
-	int width;
-	int height;
-};
-
 struct Mouse {
 	double lastX;
 	double lastY;
@@ -55,18 +39,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // Global variables
 bool drawing{true};
-
 Screen screen;
 Mouse mouse;
-
 std::shared_ptr<Camera> camera;
-std::shared_ptr<Shader> mesh_shader;
-std::shared_ptr<Shader> light_shader;
-
 TextArea* text_a;
 
-// Main function
-int main(void) {
+int main() {
 	std::cout << "Game version: " << FPS_GAME_VERSION_MAJOR
 		<< "." << FPS_GAME_VERSION_MINOR << std::endl;
 
@@ -81,11 +59,8 @@ int main(void) {
 
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-		// Uncomment following two lines for fullscreen
 	screen.width = videoMode->width;
 	screen.height = videoMode->height;
-	// screen.width = 1280;
-	// screen.height = 720;
 	mouse.lastX = screen.width / 2.0;
 	mouse.lastY = screen.height / 2.0;
 
@@ -103,11 +78,6 @@ int main(void) {
 	std::cout << "Resolution: " << screen.width << " * " << screen.height << std::endl;
 	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
 		"fps game", monitor, NULL);
-	// GLFWwindow* window = glfwCreateWindow(
-	// 	screen.width, screen.height,
-	// 	"fps game", 
-	// 	NULL, NULL
-	// );
 
 	if (!window) {
 		// Window creation failed
@@ -140,38 +110,8 @@ int main(void) {
 
 	glfwGetFramebufferSize(window, &screen.width, &screen.height);
 
-	// Setting up OpenGL
-	glViewport(0, 0, screen.width, screen.height);
-	glEnable(GL_DEPTH_TEST);
-	// Do not render back faces
-	// glEnable(GL_CULL_FACE);
-	// Enable the MSAA
-	glEnable(GL_MULTISAMPLE);
 
-	// Setting up shaders
-	light_shader = std::make_shared<Shader>(
-		"game/shaders/mesh-vertex.c", "game/shaders/light-fragment.c"
-	);
-	mesh_shader = std::make_shared<Shader>(
-		"game/shaders/mesh-vertex.c", "game/shaders/mesh-fragment.c"
-	);
-	mesh_shader->use();
-	mesh_shader->setVec3("light.color_ambient", glm::vec3(0.5f));
-	mesh_shader->setVec3("light.color_diffuse", glm::vec3(0.5f));
-	mesh_shader->setVec3("light.color_specular", glm::vec3(1.0f));
-
-	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
-	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
-	BitmapFontRenderer text_renderer(font, text_shader, static_cast<float>(screen.width) / screen.height);
-	TextArea text_area(text_renderer, {-1.0f, -1.0f}, {0.75f, 1.0f}, 0.05f, {1.0f, 1.0f, 1.0f});
-	text_a = &text_area;
-
-
-	// Setting up rendering constants
-	AssimpModelLoader model_loader;
-	std::shared_ptr<Model> terrain{model_loader.loadModel("game/models/plane-cube/plane-cube.obj")};
-	std::vector<OpenGLDrawable> drawables{OpenGLDrawable::createDrawablesFromModel(terrain, mesh_shader)};
-
+	// Setting up a 3D camera
 	camera = std::make_shared<Camera>(
 		glm::pi<float>() / 2.5f, 						// FOV in radians
 		0.1f,											// Near clip plane
@@ -180,13 +120,27 @@ int main(void) {
 		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
 		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
 		4.0f,											// Movement speed
-		0.001f,											// Mouse sensitivity
-		terrain
+		0.001f											// Mouse sensitivity
 	);
 
+
+	// Setting up a UI renderer
+	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
+	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
+	BitmapFontRenderer text_renderer(font, text_shader, static_cast<float>(screen.width) / screen.height);
+	TextArea text_area(text_renderer, {-1.0f, -1.0f}, {0.75f, 1.0f}, 0.05f, {1.0f, 1.0f, 1.0f});
+	text_a = &text_area;
+
+
+	// Setting up a model loader, and a model renderer
+	std::unique_ptr<ModelRenderer> model_renderer{ServiceLocator::getInstance().getModelRenderer()};
+	model_renderer->init(screen, camera);
+	std::unique_ptr<ModelLoader> model_loader{ServiceLocator::getInstance().getModelLoader()};
+	model_renderer->addModel(model_loader->loadModel("game/models/plane-cube/plane-cube.obj"));
+
+	
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	long frame_count{0l};
 	double fps_sum{0.0};
@@ -205,61 +159,7 @@ int main(void) {
 			continue;
 		}
 
-		// Clearing the framebuffer
-		glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
-		// glClearColor(1.f, 1.f, 1.f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Common matrices
-		const glm::mat4 mat_model{glm::mat4(1.0f)};
-		const glm::mat4 mat_view{
-			glm::lookAt(
-				camera->pos,
-				camera->pos + camera->lookAt,
-				camera->viewUp
-			)
-		};
-		const glm::mat4 mat_projection{glm::perspective(
-			camera->fov,
-			static_cast<float>(screen.width) / screen.height,
-			camera->clipNear,
-			camera->clipFar
-		)};
-
-		// Setting up projection and view matrices
-		mesh_shader->use();
-		mesh_shader->setMat4("mat_model", mat_model);
-		mesh_shader->setMat4("mat_view", mat_view);
-		mesh_shader->setMat4("mat_projection", mat_projection);
-		mesh_shader->setMat4("frag_mat_model", mat_model);
-		mesh_shader->setMat4("frag_mat_view", mat_view);
-
-		// Drawing models
-
-		// Setting a single light
-		constexpr float LIGHT_ROTATION_RADIUS{30.0f};
-		constexpr glm::vec3 LIGHT_ROTATION_CENTER{0.0f, 15.0f, 0.0f};
-		constexpr float LIGHT_ROTATION_PERIOD{10.0f}; // In seconds
-		constexpr float LIGHT_ROTATION_ANGULAR_SPEED{
-			2.0f * glm::pi<float>() / LIGHT_ROTATION_PERIOD
-		};
-		const float light_rotation_angle{
-			static_cast<float>(LIGHT_ROTATION_ANGULAR_SPEED * current_time)
-		};
-		mesh_shader->setVec3(
-			"light.position",
-			LIGHT_ROTATION_CENTER
-				+ glm::vec3(
-					LIGHT_ROTATION_RADIUS * cos(light_rotation_angle),
-					0.0f,
-					LIGHT_ROTATION_RADIUS * sin(light_rotation_angle)
-				)
-		);
-
-		for (const auto& drawable : drawables) {
-			drawable.draw();
-		}
-
+		model_renderer->draw();
 
 		// Controls
 		camera->step(static_cast<float>(last_frame_duration));

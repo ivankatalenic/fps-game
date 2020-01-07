@@ -3,8 +3,6 @@
 
 #include <font-renderer.h>
 
-#include <glad/glad.h>
-
 #include <bitmap-font.h>
 #include <shader.h>
 
@@ -19,8 +17,8 @@ private:
 	const BitmapFont& _font;
 	const Shader& _bitmap_shader;
 	float _screen_width_height;
-	GLuint _vao;
-	GLuint _vbo;
+	unsigned int _vao;
+	unsigned int _vbo;
 };
 
 #endif // BITMAP_FONT_RENDER_H

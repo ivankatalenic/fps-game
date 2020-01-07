@@ -13,7 +13,7 @@
 
 class AssimpModelLoader : public ModelLoader {
 public:
-    AssimpModelLoader();
+    AssimpModelLoader() = default;
     std::shared_ptr<Model> loadModel(const std::string& path) override;
 private:
     Assimp::Importer _importer;

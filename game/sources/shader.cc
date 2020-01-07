@@ -1,12 +1,10 @@
 #include <shader.h>
 
+#include <glad/glad.h>
+
 #include <glm/gtc/type_ptr.hpp>
 
-Shader::Shader() {
-
-}
-
-Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
+Shader::Shader(const std::string& vertex_shader_path, const std::string& fragment_shader_path) {
 	// 1. retrieve the vertex/fragment source code from filePath
 	std::string vertexCode;
 	std::string fragmentCode;
@@ -17,8 +15,8 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
 	fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 	try {
 		// open files
-		vShaderFile.open(vertexPath);
-		fShaderFile.open(fragmentPath);
+		vShaderFile.open(vertex_shader_path.c_str());
+		fShaderFile.open(fragment_shader_path.c_str());
 		std::stringstream vShaderStream, fShaderStream;
 		// read file's buffer contents into streams
 		vShaderStream << vShaderFile.rdbuf();

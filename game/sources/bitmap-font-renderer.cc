@@ -1,5 +1,7 @@
 #include <bitmap-font-renderer.h>
 
+#include <glad/glad.h>
+
 BitmapFontRenderer::BitmapFontRenderer(const BitmapFont& font, const Shader& bitmap_shader,
 		float screen_width_height):
 	_font{font}, _bitmap_shader{bitmap_shader}, _screen_width_height{screen_width_height} {

@@ -9,13 +9,7 @@
 struct Vertex {
 	glm::vec3 position;
 	glm::vec3 normal;
-	glm::vec2 texCoords;
-};
-
-struct Polygon {
-	Vertex vertices[3];
-	glm::vec3 normal;
-	float d;
+	glm::vec2 tex_coords;
 };
 
 struct Material {
@@ -32,18 +26,19 @@ struct Texture {
 
 class Mesh {
 public:
-	std::vector<Vertex> vertices;
-	std::vector<Polygon> polygons;
-	std::vector<Texture> textures;
+	glm::mat4 trans_matrix_{glm::mat4(1.0f)};
 
-	Material material;
+	std::vector<Vertex> vertices_;
+	std::vector<Texture> textures_;
+
+	Material material_;
 
 	// Constructor steals (moves) resources from the given vectors
 	Mesh(
-		std::vector<Vertex>& aVertices,
-		std::vector<Texture>& aTextures,
-		Material amaterial
+		std::vector<Vertex>&& vertices,
+		std::vector<Texture>&& textures,
+		Material material
 	);
 };
 
-#endif
+#endif // MESH_H

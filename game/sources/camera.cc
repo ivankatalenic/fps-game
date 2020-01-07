@@ -3,14 +3,13 @@
 #include <cmath>
 
 #include <glm/geometric.hpp>
-#include <glm/gtx/rotate_vector.hpp>
+#include <glm/ext/scalar_constants.hpp>
 
 #include <math-aux.h>
 
 Camera::Camera(float aFov, float aClipNear, float aClipFar,
 		float aYaw, float aPitch, glm::vec3 aPos,
-		float aSpeed, float aSensitivity,
-		std::shared_ptr<Model>& aModel):
+		float aSpeed, float aSensitivity):
 
 			fov{aFov},
 			clipNear{aClipNear},
@@ -36,21 +35,13 @@ Camera::Camera(float aFov, float aClipNear, float aClipFar,
 
 			sensitivity{aSensitivity},
 
-			model{aModel},
-
 			activeDirections{false, false, false, false, false, false} {
 
 }
 
 void Camera::step(float timeDelta) {
 	glm::vec3 step(timeDelta * speed * direction);
-	glm::vec3 new_step;
-	bool collision_detected{model->checkCollision(pos, step, new_step)};
-	if (collision_detected) {
-		pos += new_step;
-	} else {
-		pos += step;
-	}
+	pos += step;
 }
 
 void Camera::setDirection(Direction d, bool active) {

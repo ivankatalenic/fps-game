@@ -1,23 +1,24 @@
-#include <opengl-drawable.h>
+#include <opengl-drawable-mesh.h>
 
 #include <glad/glad.h>
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-OpenGLDrawable::OpenGLDrawable(std::shared_ptr<Mesh>& mesh, std::shared_ptr<Shader>& shader):
-		_mesh{mesh}, _shader{shader} {
+OpenGLDrawableMesh::OpenGLDrawableMesh(std::shared_ptr<Mesh> mesh, Shader& shader):
+		mesh_{mesh}, shader_{shader} {
 	setupVertices();
 	setupTextures();
 }
 
-void OpenGLDrawable::setupVertices() {
-	glGenVertexArrays(1, &_vao);
-	glGenBuffers(1, &_vbo);
+void OpenGLDrawableMesh::setupVertices() {
+	glGenVertexArrays(1, &vao_);
+	glGenBuffers(1, &vbo_);
 
-	glBindVertexArray(_vao);
+	glBindVertexArray(vao_);
 
 	// Copying vertices
-	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-	glBufferData(GL_ARRAY_BUFFER, _mesh->vertices.size() * sizeof(Vertex), &_mesh->vertices[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+	glBufferData(GL_ARRAY_BUFFER, mesh_->vertices_.size() * sizeof(Vertex), &mesh_->vertices_[0], GL_STATIC_DRAW);
 
 	// Pointer for a vertex's position
 	glEnableVertexAttribArray(0);
@@ -29,31 +30,31 @@ void OpenGLDrawable::setupVertices() {
 	
 	// Pointer for a vertex's texture coordinates
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*) offsetof(Vertex, texCoords));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*) offsetof(Vertex, tex_coords));
 
 	glBindVertexArray(0);
 }
 
 static unsigned int load_texture_from_file(const std::string& file_path);
 
-void OpenGLDrawable::setupTextures() {
-	for (const Texture& texture : _mesh->textures) {
+void OpenGLDrawableMesh::setupTextures() {
+	for (const Texture& texture : mesh_->textures_) {
 		// Load the texture
 		unsigned int texture_id{load_texture_from_file(texture.path)};
 		// Save the texture
-		_opengl_textures.push_back({texture_id, texture});
+		opengl_textures_.push_back({texture_id, texture});
 	}
 }
 
-void OpenGLDrawable::draw() const {
+void OpenGLDrawableMesh::draw() const {
 	// Setting up the mesh's textures
 	unsigned int diffuse_n{1u};
 	unsigned int specular_n{1u};
-	for (unsigned int i{0u}; i < _opengl_textures.size(); i++) {
+	for (unsigned int i{0u}; i < opengl_textures_.size(); i++) {
 		glActiveTexture(GL_TEXTURE0 + i);
 
 		std::string number;
-		const std::string name{_opengl_textures[i].texture.type};
+		const std::string name{opengl_textures_[i].texture.type};
 
 		if (name == "texture_diffuse") {
 			number = std::to_string(diffuse_n++);
@@ -61,22 +62,22 @@ void OpenGLDrawable::draw() const {
 			number = std::to_string(specular_n++);
 		}
 
-		glUniform1i(glGetUniformLocation(_shader->id, (name + number).c_str()), i);
-		glBindTexture(GL_TEXTURE_2D, _opengl_textures[i].id);
+		glUniform1i(glGetUniformLocation(shader_.id, (name + number).c_str()), i);
+		glBindTexture(GL_TEXTURE_2D, opengl_textures_[i].id);
 	}
 
 	glActiveTexture(GL_TEXTURE0);
 
 	// Setting the mesh's material properties
-	Material material{_mesh->material};
-	_shader->setVec3("material.color_ambient", material.color_ambient);
-	_shader->setVec3("material.color_diffuse", material.color_diffuse);
-	_shader->setVec3("material.color_specular", material.color_specular);
-	_shader->setFloat("material.shininess", material.shininess);
+	Material material{mesh_->material_};
+	shader_.setVec3("material.color_ambient", material.color_ambient);
+	shader_.setVec3("material.color_diffuse", material.color_diffuse);
+	shader_.setVec3("material.color_specular", material.color_specular);
+	shader_.setFloat("material.shininess", material.shininess);
 
 	// Drawing the mesh
-	glBindVertexArray(_vao);
-	glDrawArrays(GL_TRIANGLES, 0, _mesh->vertices.size());
+	glBindVertexArray(vao_);
+	glDrawArrays(GL_TRIANGLES, 0, mesh_->vertices_.size());
 	glBindVertexArray(0);
 }
 
@@ -113,13 +114,4 @@ static unsigned int load_texture_from_file(const std::string& file_path) {
 		stbi_image_free(data);
 	}
 	return texture_id;
-}
-
-std::vector<OpenGLDrawable> OpenGLDrawable::createDrawablesFromModel(
-		std::shared_ptr<Model>& model, std::shared_ptr<Shader>& shader) {
-	std::vector<OpenGLDrawable> drawables;
-	for (std::shared_ptr<Mesh>& mesh : model->meshes) {
-		drawables.emplace_back(mesh, shader);
-	}
-	return drawables;
 }

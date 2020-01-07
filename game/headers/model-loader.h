@@ -1,8 +1,8 @@
 #ifndef MODEL_LOADER_H
 #define MODEL_LOADER_H
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include <model.h>
 

@@ -18,18 +18,11 @@ struct Light {
 
 class Model {
 public:
-	std::vector<std::shared_ptr<Mesh>> meshes;
-	std::vector<Light> lights;
+	std::vector<std::shared_ptr<Mesh>> meshes_;
+	std::vector<Light> lights_;
 
 	Model() = default;
-	Model(const std::vector<std::shared_ptr<Mesh>>& meshes, const std::vector<Light>& lights);
-	
-	bool checkCollision(
-		glm::vec3 position,
-		glm::vec3 step,
-		glm::vec3& new_step,
-		int recursion_depth = 0
-	);
+	Model(std::vector<std::shared_ptr<Mesh>>&& meshes, std::vector<Light>&& lights);
 };
 
 #endif

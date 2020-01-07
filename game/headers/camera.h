@@ -1,10 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <memory>
-
 #include <glm/glm.hpp>
-#include <model.h>
 
 enum Direction {
 	DIRECTION_UP 		= 0,
@@ -35,16 +32,13 @@ public:
 	
 	float sensitivity;
 
-	std::shared_ptr<Model> model;
-
 	bool activeDirections[6];
 
 	// Constructors
-	Camera() = delete;
+	Camera() = default;
 	Camera(float aFov, float aClipNear, float aClipFar,
 		float aYaw, float aPitch, glm::vec3 aPos,
-		float aSpeed, float aSensitivity,
-		std::shared_ptr<Model>& aModel);
+		float aSpeed, float aSensitivity);
 
 	// Methods
 	void step(float timeDelta);
@@ -53,4 +47,4 @@ public:
 	void updateDirection();
 };
 
-#endif
+#endif // CAMERA_H
