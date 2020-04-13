@@ -1,37 +1,43 @@
 #include "fps-game-config.h"
 
+// Library classes
+#include "external/glad/glad.h"
+#include "external/glfw/include/GLFW/glfw3.h"
+#include "external/glm/glm/ext/scalar_constants.hpp"
+
+// Private classes
+#include "game/headers/service-locator.hh"
+#include "game/headers/debug-help.hh"
+#include "game/headers/frame-stats.hh"
+
+#include "game/headers/renderer/screen.hh"
+#include "game/headers/renderer/camera.hh"
+#include "game/headers/renderer/model-renderer.hh"
+
+#include "game/headers/model/model.hh"
+#include "game/headers/model/model-loader.hh"
+
+#include "game/headers/gui/bitmap-font.hh"
+#include "game/headers/gui/bitmap-font-renderer.hh"
+#include "game/headers/gui/text-area.hh"
+#include "game/headers/gui/scene.hh"
+#include "game/headers/gui/framestats-display.hh"
+#include "game/headers/gui/camerastats-display.hh"
+
+#include "game/headers/input/keyboard-handler.hh"
+#include "game/headers/input/mouse-handler.hh"
+#include "game/headers/input/key.hh"
+
 // System classes
 #include <iostream>
 #include <string>
 #include <memory>
 
-// Library classes
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/ext/scalar_constants.hpp>
-
-// Private classes
-#include <service-locator.h>
-#include <screen.h>
-#include <camera.h>
-#include <model.h>
-#include <model-loader.h>
-#include <model-renderer.h>
-#include <debug-help.h>
-#include <bitmap-font.h>
-#include <bitmap-font-renderer.h>
-#include <text-area.h>
-
-// Structure definitions
-struct Mouse {
-	double lastX;
-	double lastY;
-};
-
 // Function prototypes
 void error_callback(int error, const char* description);
 void key_callback(GLFWwindow* window, 
 	int key, int scancode, int action, int mods);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void window_iconify_callback(GLFWwindow* window, int iconified);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
@@ -40,9 +46,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 // Global variables
 bool drawing{true};
 Screen screen;
-Mouse mouse;
-std::shared_ptr<Camera> camera;
-TextArea* text_a;
+KeyboardHandler keyboard_handler;
+MouseHandler mouse_handler;
 
 int main() {
 	std::cout << "Game version: " << FPS_GAME_VERSION_MAJOR
@@ -61,8 +66,6 @@ int main() {
 	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
 	screen.width = videoMode->width;
 	screen.height = videoMode->height;
-	mouse.lastX = screen.width / 2.0;
-	mouse.lastY = screen.height / 2.0;
 
 	glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
 	glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
@@ -91,6 +94,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetWindowIconifyCallback(window, window_iconify_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -112,7 +116,7 @@ int main() {
 
 
 	// Setting up a 3D camera
-	camera = std::make_shared<Camera>(
+	Camera camera(
 		glm::pi<float>() / 2.5f, 						// FOV in radians
 		0.1f,											// Near clip plane
 		100.0f,											// Far clip plane
@@ -124,32 +128,175 @@ int main() {
 	);
 
 
+	// Setting the GUI
+	Scene scene;
 	// Setting up a UI renderer
-	Shader text_shader("game/shaders/text-vertex.c", "game/shaders/text-fragment.c");
-	BitmapFont font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
-	BitmapFontRenderer text_renderer(font, text_shader, static_cast<float>(screen.width) / screen.height);
-	TextArea text_area(text_renderer, {-1.0f, -1.0f}, {0.75f, 1.0f}, 0.05f, {1.0f, 1.0f, 1.0f});
-	text_a = &text_area;
+	Shader text_shader("game/shaders/text-vertex.gls", "game/shaders/text-fragment.gls");
+	BitmapFont bitmap_font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
+	BitmapFontRenderer bitmap_font_renderer(bitmap_font, text_shader, static_cast<float>(screen.width) / screen.height);
 
+	TextArea text_area(
+		bitmap_font_renderer,
+		glm::vec2{-1.0f, -1.0f},
+		glm::vec2{0.75f, 1.0f},
+		0.05f,
+		glm::vec3{1.0f, 1.0f, 1.0f}
+	);
+	scene.add(&text_area);
+
+	FrameStats<512> frame_stats;
+	FrameStatsDisplay<512> frame_stats_display(bitmap_font_renderer, frame_stats, {-1.0f, 0.85f}, 0.05f);
+	scene.add(&frame_stats_display);
+
+	CameraStatsDisplay camera_stats_display(bitmap_font_renderer, camera, {-1.0f, 0.95f}, 0.05f);
+	scene.add(&camera_stats_display);
 
 	// Setting up a model loader, and a model renderer
 	std::unique_ptr<ModelRenderer> model_renderer{ServiceLocator::getInstance().getModelRenderer()};
-	model_renderer->init(screen, camera);
+	model_renderer->init(screen, &camera);
 	std::unique_ptr<ModelLoader> model_loader{ServiceLocator::getInstance().getModelLoader()};
-	model_renderer->addModel(model_loader->loadModel("game/models/plane-cube/plane-cube.obj"));
+	model_renderer->addModel(model_loader->loadModel("game/terrains/plane-cube/plane-cube.obj"));
 
-	
+	// Setting up inputs
+	keyboard_handler.registerKeyHandler(Input::Key::W, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				camera.setDirection(DIRECTION_FORWARD, true);
+				break;
+			}
+			case Input::Action::Release: {
+				camera.setDirection(DIRECTION_FORWARD, false);
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	keyboard_handler.registerKeyHandler(Input::Key::A, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				camera.setDirection(DIRECTION_LEFT, true);
+				break;
+			}
+			case Input::Action::Release: {
+				camera.setDirection(DIRECTION_LEFT, false);
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	keyboard_handler.registerKeyHandler(Input::Key::S, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				camera.setDirection(DIRECTION_BACKWARD, true);
+				break;
+			}
+			case Input::Action::Release: {
+				camera.setDirection(DIRECTION_BACKWARD, false);
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	keyboard_handler.registerKeyHandler(Input::Key::D, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				camera.setDirection(DIRECTION_RIGHT, true);
+				break;
+			}
+			case Input::Action::Release: {
+				camera.setDirection(DIRECTION_RIGHT, false);
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	keyboard_handler.registerKeyHandler(Input::Key::LEFT_SHIFT, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				camera.setDirection(DIRECTION_UP, true);
+				break;
+			}
+			case Input::Action::Release: {
+				camera.setDirection(DIRECTION_UP, false);
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	keyboard_handler.registerKeyHandler(Input::Key::LEFT_CONTROL, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				camera.setDirection(DIRECTION_DOWN, true);
+				break;
+			}
+			case Input::Action::Release: {
+				camera.setDirection(DIRECTION_DOWN, false);
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	keyboard_handler.registerKeyHandler(Input::Key::ESCAPE, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+				break;
+			}
+			case Input::Action::Release: {
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	mouse_handler.registerButtonHandler(Input::MouseButton::Left, [&](Input::Action action, Input::Modifier modifier) {
+		switch (action) {
+			case Input::Action::Press: {
+				text_area.addLine("Left mouse button pressed!");
+				break;
+			}
+			case Input::Action::Release: {
+				break;
+			}
+			case Input::Action::Repeat: {
+				break;
+			}
+		}
+	});
+	mouse_handler.registerCursorHandler([&](double x_position, double y_position) {
+		static double last_x{screen.width / 2.0};
+		static double last_y{screen.height / 2.0};
+
+		camera.swipe(x_position - last_x, y_position - last_y);
+
+		last_x = x_position;
+		last_y = y_position;
+	});
+	mouse_handler.registerScrollHandler([&](double x_offset, double y_offset) {
+		constexpr float SCROLL_FACTOR{0.5f};
+		camera.speed += SCROLL_FACTOR * static_cast<float>(y_offset);
+	});
+
+
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
-
-	long frame_count{0l};
-	double fps_sum{0.0};
 
 	double current_time{glfwGetTime()};
 	double frame_start_time{current_time};
 	double last_frame_duration{1.0 / 60.0};
-
-	double last_fps_display_time{current_time};
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -159,38 +306,23 @@ int main() {
 			continue;
 		}
 
+		// Terrain, and models
 		model_renderer->draw();
 
 		// Controls
-		camera->step(static_cast<float>(last_frame_duration));
-
-
-		// Timer, and the FPS display
-		frame_count++;
-		fps_sum += 1.0 / last_frame_duration;
-		constexpr double FPS_DISPLAY_WAIT{1.0};
-		constexpr bool SHOW_FPS{true};
-		double avg_fps;
-		if (SHOW_FPS
-				&& (current_time - last_fps_display_time) >= FPS_DISPLAY_WAIT) {
-			last_fps_display_time = glfwGetTime();
-
-			avg_fps = fps_sum / frame_count;
-			fps_sum = 0.0;
-			frame_count = 0l;
-		}
+		camera.step(static_cast<float>(last_frame_duration));
 		
-		text_renderer.draw("Avg. FPS: " + std::to_string(avg_fps), 0.05f, glm::vec2(-1.0f, 0.95f), glm::vec3(1.0f));
-		text_renderer.draw("Position: (" + std::to_string(camera->pos.x)
-				+ ", " + std::to_string(camera->pos.y) + ", " + std::to_string(camera->pos.z) + ")",
-			0.05f, glm::vec2(-1.0f, 0.9f), glm::vec3(1.0f));
-		text_area.draw();
-		glfwSwapBuffers(window);
+		// GUI
+		scene.draw();
 
+		glfwSwapBuffers(window);
 
 		current_time = glfwGetTime();
 		last_frame_duration = current_time - frame_start_time;
 		frame_start_time = current_time;
+
+		// Frame stats
+		frame_stats.addFrameTime(last_frame_duration);
 	}
 
 	glfwTerminate();
@@ -203,42 +335,7 @@ void error_callback(int error, const char* description) {
 
 void key_callback(GLFWwindow* window, 
 	int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, GLFW_TRUE);
-
-	} else if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-		camera->setDirection(DIRECTION_FORWARD, true);
-		text_a->addLine("W pressed");
-	} else if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
-		camera->setDirection(DIRECTION_FORWARD, false);
-
-	} else if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-		camera->setDirection(DIRECTION_LEFT, true);
-	} else if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
-		camera->setDirection(DIRECTION_LEFT, false);
-
-	} else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-		camera->setDirection(DIRECTION_BACKWARD, true);
-		text_a->addLine("S pressed");
-	} else if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
-		camera->setDirection(DIRECTION_BACKWARD, false);
-
-	} else if (key == GLFW_KEY_D && action == GLFW_PRESS) {
-		camera->setDirection(DIRECTION_RIGHT, true);
-	} else if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
-		camera->setDirection(DIRECTION_RIGHT, false);
-
-	} else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) {
-		camera->setDirection(DIRECTION_UP, true);
-		text_a->addLine("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in");
-	} else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) {
-		camera->setDirection(DIRECTION_UP, false);
-
-	} else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
-		camera->setDirection(DIRECTION_DOWN, true);
-	} else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) {
-		camera->setDirection(DIRECTION_DOWN, false);
-	}
+	keyboard_handler.processKey(Input::Key{key}, Input::Action{action}, Input::Modifier{mods});
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -256,13 +353,14 @@ void window_iconify_callback(GLFWwindow* window, int iconified) {
 	}
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	mouse_handler.processButton(Input::MouseButton{button}, Input::Action{action}, Input::Modifier{mods});
+}
+
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-	camera->swipe(xpos - mouse.lastX, ypos - mouse.lastY);
-	mouse.lastX = xpos;
-	mouse.lastY = ypos;
+	mouse_handler.processCursor(xpos, ypos);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-	constexpr float SCROLL_FACTOR{0.5f};
-	camera->speed += SCROLL_FACTOR * static_cast<float>(yoffset);
+	mouse_handler.processScroll(xoffset, yoffset);
 }

@@ -1,8 +1,8 @@
-#include <service-locator.h>
+#include "game/headers/service-locator.hh"
 
-#include <assimp-model-loader.h>
-#include <opengl-model-renderer.h>
-#include <GLFW/glfw3.h>
+#include "game/headers/model/assimp/assimp-model-loader.hh"
+#include "game/headers/renderer/opengl/opengl-model-renderer.hh"
+#include "external/glfw/include/GLFW/glfw3.h"
 
 ServiceLocator& ServiceLocator::getInstance() {
 	static ServiceLocator* locator{new ServiceLocator()};

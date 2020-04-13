@@ -20,23 +20,37 @@ configure_file(
 	"${PROJECT_BINARY_DIR}/fps-game-config.h"
 )
 
+set(HEADERS
+	fps-game-config.h
+)
+
 set(SOURCES
 	game/sources/main.cc
-	game/sources/camera.cc
-	game/sources/glad.c
-	game/sources/mesh.cc
-	game/sources/model.cc
-	game/sources/shader.cc
-	game/sources/bitmap-font.cc
-	game/sources/bitmap-font-renderer.cc
-	game/sources/text-area.cc
-	game/sources/assimp-model-loader.cc
-	game/sources/opengl-drawable-mesh.cc
-	game/sources/opengl-drawable-model.cc
-	game/sources/opengl-model-renderer.cc
 	game/sources/service-locator.cc
+
+	game/sources/model/model.cc
+	game/sources/model/mesh.cc
+	game/sources/model/assimp/assimp-model-loader.cc
+
+	game/sources/gui/scene.cc
+	game/sources/gui/text-area.cc
+	game/sources/gui/bitmap-font.cc
+	game/sources/gui/bitmap-font-renderer.cc
+
+	game/sources/renderer/camera.cc
+	game/sources/renderer/opengl/glad.c
+	game/sources/renderer/opengl/shader.cc
+	game/sources/renderer/opengl/opengl-drawable-mesh.cc
+	game/sources/renderer/opengl/opengl-drawable-model.cc
+	game/sources/renderer/opengl/opengl-model-renderer.cc
+
+	game/sources/input/keyboard-handler.cc
+	game/sources/input/mouse-handler.cc
 )
-add_executable(thegame ${SOURCES})
+add_executable(thegame ${HEADERS} ${SOURCES})
+set_target_properties(thegame PROPERTIES
+	CXX_STANDARD 17
+)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -52,7 +66,7 @@ add_subdirectory(external/assimp)
 target_compile_options(thegame PUBLIC -Wall -O2)
 target_compile_features(thegame PUBLIC cxx_std_17)
 
-target_include_directories(thegame PUBLIC external external/stb external/glm external/glfw/include game/headers .)
+target_include_directories(thegame PUBLIC game/headers external external/stb external/glm external/glfw/include .)
 
 # target_link_directories(thegame lib)
 if (UNIX)
