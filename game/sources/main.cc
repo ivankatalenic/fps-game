@@ -129,7 +129,7 @@ int main() {
 
 
 	// Setting the GUI
-	Scene scene;
+	Scene GUI;
 	// Setting up a UI renderer
 	Shader text_shader("game/shaders/text-vertex.gls", "game/shaders/text-fragment.gls");
 	BitmapFont bitmap_font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
@@ -142,14 +142,14 @@ int main() {
 		0.05f,
 		glm::vec3{1.0f, 1.0f, 1.0f}
 	);
-	scene.add(&text_area);
+	GUI.add(&text_area);
 
 	FrameStats<512> frame_stats;
 	FrameStatsDisplay<512> frame_stats_display(bitmap_font_renderer, frame_stats, {-1.0f, 0.85f}, 0.05f);
-	scene.add(&frame_stats_display);
+	GUI.add(&frame_stats_display);
 
 	CameraStatsDisplay camera_stats_display(bitmap_font_renderer, camera, {-1.0f, 0.95f}, 0.05f);
-	scene.add(&camera_stats_display);
+	GUI.add(&camera_stats_display);
 
 	// Setting up a model loader, and a model renderer
 	std::unique_ptr<ModelRenderer> model_renderer{ServiceLocator::getInstance().getModelRenderer()};
@@ -313,7 +313,7 @@ int main() {
 		camera.step(static_cast<float>(last_frame_duration));
 		
 		// GUI
-		scene.draw();
+		GUI.draw();
 
 		glfwSwapBuffers(window);
 
