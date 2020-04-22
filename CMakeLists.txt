@@ -38,7 +38,6 @@ set(SOURCES
 	game/sources/gui/bitmap-font-renderer.cc
 
 	game/sources/renderer/camera.cc
-	game/sources/renderer/opengl/glad.c
 	game/sources/renderer/opengl/shader.cc
 	game/sources/renderer/opengl/opengl-drawable-mesh.cc
 	game/sources/renderer/opengl/opengl-drawable-model.cc
@@ -46,6 +45,8 @@ set(SOURCES
 
 	game/sources/input/keyboard-handler.cc
 	game/sources/input/mouse-handler.cc
+
+	external/glad/glad.c
 )
 add_executable(thegame ${HEADERS} ${SOURCES})
 set_target_properties(thegame PROPERTIES
