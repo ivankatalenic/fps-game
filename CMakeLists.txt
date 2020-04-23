@@ -28,6 +28,8 @@ set(SOURCES
 	game/sources/main.cc
 	game/sources/service-locator.cc
 
+	game/sources/utility/console-logger.cc
+
 	game/sources/model/model.cc
 	game/sources/model/mesh.cc
 	game/sources/model/assimp/assimp-model-loader.cc

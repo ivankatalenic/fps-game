@@ -10,6 +10,8 @@
 #include "game/headers/debug-help.hh"
 #include "game/headers/frame-stats.hh"
 
+#include "game/headers/utility/logger.hh"
+
 #include "game/headers/renderer/screen.hh"
 #include "game/headers/renderer/camera.hh"
 #include "game/headers/renderer/model-renderer.hh"
@@ -29,7 +31,6 @@
 #include "game/headers/input/key.hh"
 
 // System classes
-#include <iostream>
 #include <string>
 #include <memory>
 
@@ -48,17 +49,15 @@ bool drawing{true};
 Screen screen;
 KeyboardHandler keyboard_handler;
 MouseHandler mouse_handler;
+std::unique_ptr<Logger> logger{ServiceLocator::getInstance().getLogger()};
 
 int main() {
-	std::cout << "Game version: " << FPS_GAME_VERSION_MAJOR
-		<< "." << FPS_GAME_VERSION_MINOR << std::endl;
-
 	// Setting up GLFW
 	glfwSetErrorCallback(error_callback);
 
 	if (!glfwInit()) {
 		// GLFW initialization failed
-		std::cout << "Cannot initialize GLFW library!" << std::endl;
+		logger->Error("cannot initialize the GLFW library");
 		return -1;
 	}
 
@@ -77,15 +76,15 @@ int main() {
 	// Multisample Anti-Aliasing (MSAA) number of samples
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	// glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-	std::cout << "Refresh rate: " << videoMode->refreshRate << '\n';
-	std::cout << "Resolution: " << screen.width << " * " << screen.height << std::endl;
+	logger->Info("Refresh rate: " + std::to_string(videoMode->refreshRate));
+	logger->Info("Resolution: " + std::to_string(screen.width) + " * " + std::to_string(screen.height));
 	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
 		"fps game", monitor, NULL);
 
 	if (!window) {
 		// Window creation failed
 		glfwTerminate();
-		std::cout << "Cannot create a window!" << std::endl;
+		logger->Error("cannot create a window");
 		return -1;
 	}
 
@@ -100,14 +99,14 @@ int main() {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported()) {
 	    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-		std::cout << "Raw mouse motion is enabled!" << std::endl;
+		logger->Info("raw mouse motion is enabled");
 	} else {
-		std::cout << "Raw mouse motion is not supported!" << std::endl;
+		logger->Info("raw mouse motion is not supported");
 	}
 
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-		std::cout << "Cannot initilize GLAD library!" << std::endl;
+		logger->Info("cannot initialize the GLAD library");
 		glfwTerminate();
 		return -1;
 	}
@@ -117,14 +116,14 @@ int main() {
 
 	// Setting up a 3D camera
 	Camera camera(
-		glm::pi<float>() / 2.5f, 						// FOV in radians
-		0.1f,											// Near clip plane
-		100.0f,											// Far clip plane
-		0.0f,											// Yaw: Angle from x-axis
-		0.5f * glm::pi<float>(),						// Pitch: Elevation from x-z plane
-		glm::vec3(2.0f, 2.0f, 2.0f),					// Position
-		4.0f,											// Movement speed
-		0.001f											// Mouse sensitivity
+		glm::pi<float>() / 2.5f, 		// FOV in radians
+		0.1f,							// Near clip plane
+		500.0f,							// Far clip plane
+		0.0f,							// Yaw: Angle from x-axis
+		0.5f * glm::pi<float>(),		// Pitch: Elevation from x-z plane
+		glm::vec3(2.0f, 2.0f, 2.0f),	// Position
+		4.0f,							// Movement speed
+		0.001f							// Mouse sensitivity
 	);
 
 
@@ -330,7 +329,7 @@ int main() {
 }
 
 void error_callback(int error, const char* description) {
-	std::cout << "Error: " << description << std::endl;
+	logger->Error(description);
 }
 
 void key_callback(GLFWwindow* window, 

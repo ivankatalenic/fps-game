@@ -3,6 +3,7 @@
 
 #include "game/headers/model/model-loader.hh"
 #include "game/headers/renderer/model-renderer.hh"
+#include "game/headers/utility/logger.hh"
 
 #include <memory>
 
@@ -12,6 +13,7 @@ public:
 
 	std::unique_ptr<ModelLoader> getModelLoader() const;
 	std::unique_ptr<ModelRenderer> getModelRenderer() const;
+	std::unique_ptr<Logger> getLogger() const;
 	double getCurrentTime() const;
 private:
 	ServiceLocator() = default;
