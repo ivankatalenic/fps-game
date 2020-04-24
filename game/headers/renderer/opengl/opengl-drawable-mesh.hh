@@ -22,6 +22,8 @@ private:
 	std::shared_ptr<Mesh> mesh_;
 	Shader& shader_;
 
+	std::size_t vertex_count_;
+
 	unsigned int vao_;
 	unsigned int vbo_;
 

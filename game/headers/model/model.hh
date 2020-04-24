@@ -21,7 +21,6 @@ public:
 	std::vector<std::shared_ptr<Mesh>> meshes_;
 	std::vector<Light> lights_;
 
-	Model() = default;
 	Model(std::vector<std::shared_ptr<Mesh>>&& meshes, std::vector<Light>&& lights);
 };
 

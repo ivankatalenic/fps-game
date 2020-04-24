@@ -2,8 +2,8 @@
 
 #include <utility>
 
-Mesh::Mesh(std::vector<Vertex>&& vertices, std::vector<Texture>&& textures, Material material):
-	vertices_{std::move(vertices)},
+Mesh::Mesh(std::vector<Triangle>&& triangles, std::vector<Texture>&& textures, Material material):
+	triangles_{std::move(triangles)},
 	textures_{std::move(textures)},
 	material_{material} {
 }

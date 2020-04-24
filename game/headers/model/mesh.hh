@@ -12,6 +12,10 @@ struct Vertex {
 	glm::vec2 tex_coords;
 };
 
+struct Triangle {
+	Vertex vertices[3];
+};
+
 struct Material {
 	glm::vec3 color_ambient;
 	glm::vec3 color_diffuse;
@@ -28,14 +32,16 @@ class Mesh {
 public:
 	glm::mat4 trans_matrix_{glm::mat4(1.0f)};
 
-	std::vector<Vertex> vertices_;
+	std::vector<Triangle> triangles_;
 	std::vector<Texture> textures_;
 
 	Material material_;
 
-	// Constructor steals (moves) resources from the given vectors
+	/**
+	 * Mesh constructor steals (moves) resources from the given vectors.
+	 */
 	Mesh(
-		std::vector<Vertex>&& vertices,
+		std::vector<Triangle>&& triangles,
 		std::vector<Texture>&& textures,
 		Material material
 	);

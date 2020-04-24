@@ -5,12 +5,19 @@
 #include "external/stb/stb_image.h"
 
 OpenGLDrawableMesh::OpenGLDrawableMesh(std::shared_ptr<Mesh> mesh, Shader& shader):
-		mesh_{mesh}, shader_{shader} {
+		mesh_{mesh}, shader_{shader}, vertex_count_{mesh->triangles_.size() * 3u} {
 	setupVertices();
 	setupTextures();
 }
 
 void OpenGLDrawableMesh::setupVertices() {
+	std::vector<Vertex> vertices;
+	for (const auto& triangle : mesh_->triangles_) {
+		vertices.push_back(triangle.vertices[0]);
+		vertices.push_back(triangle.vertices[1]);
+		vertices.push_back(triangle.vertices[2]);
+	}
+
 	glGenVertexArrays(1, &vao_);
 	glGenBuffers(1, &vbo_);
 
@@ -18,7 +25,7 @@ void OpenGLDrawableMesh::setupVertices() {
 
 	// Copying vertices
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_->vertices_.size() * sizeof(Vertex), &mesh_->vertices_[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
 	// Pointer for a vertex's position
 	glEnableVertexAttribArray(0);
@@ -77,7 +84,7 @@ void OpenGLDrawableMesh::draw() const {
 
 	// Drawing the mesh
 	glBindVertexArray(vao_);
-	glDrawArrays(GL_TRIANGLES, 0, mesh_->vertices_.size());
+	glDrawArrays(GL_TRIANGLES, 0, vertex_count_);
 	glBindVertexArray(0);
 }
 
