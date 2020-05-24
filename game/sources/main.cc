@@ -61,8 +61,8 @@ int main() {
 		return -1;
 	}
 
-	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+	GLFWmonitor* monitor{glfwGetPrimaryMonitor()};
+	const GLFWvidmode* videoMode{glfwGetVideoMode(monitor)};
 	screen.width = videoMode->width;
 	screen.height = videoMode->height;
 
@@ -116,11 +116,11 @@ int main() {
 
 	// Setting up a 3D camera
 	Camera camera(
-		glm::pi<float>() / 2.5f, 		// FOV in radians
+		glm::pi<float>() / 2.0f, 		// FOV in radians
 		0.1f,							// Near clip plane
 		500.0f,							// Far clip plane
-		0.0f,							// Yaw: Angle from x-axis
-		0.5f * glm::pi<float>(),		// Pitch: Elevation from x-z plane
+		0.0f,							// Orientation Yaw: Angle from x-axis
+		0.5f * glm::pi<float>(),		// Orientation Pitch: Elevation from x-z plane
 		glm::vec3(2.0f, 2.0f, 2.0f),	// Position
 		4.0f,							// Movement speed
 		0.001f							// Mouse sensitivity
