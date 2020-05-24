@@ -12,7 +12,7 @@ namespace Collider {
 	};
 
 	struct Capsule {
-		float radisu;
+		float radius;
 		glm::vec3 centers[2];
 	};
 
