@@ -1,4 +1,4 @@
-#include "game/headers/model/assimp/assimp-model-loader.hh"
+#include "game/headers/model/assimp/assimp-terrain-loader.hh"
 
 #include "external/assimp/include/assimp/vector3.h"
 #include "external/assimp/include/assimp/types.h"
@@ -9,20 +9,28 @@
 
 #include <stdexcept>
 
-std::shared_ptr<Model> AssimpModelLoader::loadModel(const std::string& path) {
+std::shared_ptr<Terrain> AssimpTerrainLoader::loadTerrain(std::string_view path) {
+	const std::string filePath{path.data()};
 	const aiScene* scene{
 		_importer.ReadFile(
-			path,
+			filePath,
 			aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals
 		)
 	};
 	if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
-		throw std::runtime_error(std::string("cannot load model file: ") + std::string(_importer.GetErrorString()));
+		throw std::runtime_error(std::string("cannot load terrain file: ") + std::string(_importer.GetErrorString()));
 	}
 
 	// Process root node
 	std::vector<std::shared_ptr<Mesh>> meshes;
 	processNode(meshes, scene->mRootNode, scene);
+	std::vector<std::shared_ptr<Model>> models;
+	models.push_back(
+		std::make_shared<Model>(
+			glm::vec3{0.0f, 0.0f, 0.0f},
+			std::move(meshes)
+		)
+	);
 
 	// Process lights
 	std::vector<Light> lights;
@@ -30,10 +38,10 @@ std::shared_ptr<Model> AssimpModelLoader::loadModel(const std::string& path) {
 		processLights(scene, lights);
 	}
 
-	return std::make_shared<Model>(std::move(meshes), std::move(lights));
+	return std::make_shared<Terrain>(std::move(models), std::move(lights));
 }
 
-void AssimpModelLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* ai_scene) {
+void AssimpTerrainLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* ai_scene) {
 	// Process meshes
 	for (unsigned int i{0u}; i < node->mNumMeshes; i++) {
 		const unsigned int mesh_index{node->mMeshes[i]};
@@ -48,7 +56,7 @@ void AssimpModelLoader::processNode(std::vector<std::shared_ptr<Mesh>>& meshes, 
 	}
 }
 
-std::shared_ptr<Mesh> AssimpModelLoader::processMesh(const aiMesh* mesh, const aiScene* scene) {
+std::shared_ptr<Mesh> AssimpTerrainLoader::processMesh(const aiMesh* mesh, const aiScene* scene) {
 	if (!mesh->HasPositions()) {
 		throw std::runtime_error("the mesh has no vertex positions");
 	}
@@ -72,10 +80,10 @@ std::shared_ptr<Mesh> AssimpModelLoader::processMesh(const aiMesh* mesh, const a
 	std::vector<Texture> textures;
 	processMaterial(ai_mat, material, textures);
 	
-	return std::make_shared<Mesh>(std::move(triangles), std::move(textures), material);
+	return std::make_shared<Mesh>(glm::vec3{0.0f, 0.0f, 0.0f}, std::move(triangles), std::move(textures), material);
 }
 
-Triangle AssimpModelLoader::processTriangle(const aiFace* ai_triangle, const aiMesh* ai_mesh) {
+Triangle AssimpTerrainLoader::processTriangle(const aiFace* ai_triangle, const aiMesh* ai_mesh) {
 	Triangle triangle;
 	for (int i{0}; i < 3; i++) {
 		const int vertex_index{static_cast<int>(ai_triangle->mIndices[i])};
@@ -102,7 +110,7 @@ Triangle AssimpModelLoader::processTriangle(const aiFace* ai_triangle, const aiM
 	return triangle;
 }
 
-void AssimpModelLoader::processMaterial(const aiMaterial* ai_mat, Material& material, std::vector<Texture>& textures) {
+void AssimpTerrainLoader::processMaterial(const aiMaterial* ai_mat, Material& material, std::vector<Texture>& textures) {
 	// Setting a material's colors
 	aiColor3D ai_color(0.0f, 0.0f, 0.0f);
 
@@ -141,7 +149,7 @@ void AssimpModelLoader::processMaterial(const aiMaterial* ai_mat, Material& mate
 	}
 }
 
-std::vector<Texture> AssimpModelLoader::loadMaterialTextures(
+std::vector<Texture> AssimpTerrainLoader::loadMaterialTextures(
 	const aiMaterial* mat,
 	const aiTextureType type,
 	const std::string& type_name
@@ -158,23 +166,20 @@ std::vector<Texture> AssimpModelLoader::loadMaterialTextures(
 	return textures;
 }
 
-void AssimpModelLoader::processLights(const aiScene* scene, std::vector<Light>& lights) {
+void AssimpTerrainLoader::processLights(const aiScene* scene, std::vector<Light>& lights) {
 	for (unsigned int i{0u}; i < scene->mNumLights; i++) {
 		const aiLight* ai_light{scene->mLights[i]};
-		Light my_light;
-		
-		// Setting light-type-specific parameters
-		if (ai_light->mType == aiLightSource_POINT) {
-			my_light.position = glm::vec3(
-				ai_light->mPosition.x,
-				ai_light->mPosition.y,
-				ai_light->mPosition.z
-			);
-		} else {
+		if (ai_light->mType != aiLightSource_POINT) {
 			continue;
 		}
 
-		// Setting general light parameters
+		Light my_light;
+
+		my_light.position = glm::vec3(
+			ai_light->mPosition.x,
+			ai_light->mPosition.y,
+			ai_light->mPosition.z
+		);
 		my_light.color_ambient = glm::vec3(
 			ai_light->mColorAmbient.r,
 			ai_light->mColorAmbient.g,

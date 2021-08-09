@@ -5,8 +5,13 @@
 
 class BitmapFont {
 public:
-	BitmapFont(const std::string& bitmap_path, int rows, int columns,
-		int first_ascii_sym, float width_height);
+	BitmapFont(
+		const std::string& bitmap_path,
+		int rows,
+		int columns,
+		int first_ascii_sym,
+		float width_height
+	);
 	~BitmapFont();
 
 	void getCharPosition(char c, float* x, float* y) const;

@@ -11,9 +11,13 @@
 
 class OpenGLDrawableModel : public Drawable {
 public:
-	OpenGLDrawableModel(std::shared_ptr<Model> model, Shader& shader);
+	OpenGLDrawableModel(std::shared_ptr<Model> model, Shader* shader);
+	
 	void draw() const override;
 private:
+	std::shared_ptr<Model> model_;
+	Shader* shader_;
+	
 	std::vector<OpenGLDrawableMesh> meshes_;
 };
 

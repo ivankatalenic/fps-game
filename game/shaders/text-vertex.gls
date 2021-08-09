@@ -1,4 +1,4 @@
-#version 330 core
+#version 400 core
 
 // (pos_x, pos_y, tex_s, tex_t)
 layout (location = 0) in vec4 vertex;

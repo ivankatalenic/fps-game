@@ -13,14 +13,18 @@ public:
 	/**
 	 * The position argument specifies the bottom left corner of the text area.
 	 */
-	TextArea(const FontRenderer& renderer,
-		glm::vec2 position, glm::vec2 dimension,
-		float text_scale, glm::vec3 text_color);
+	TextArea(
+		const FontRenderer* renderer,
+		glm::vec2 position,
+		glm::vec2 dimension,
+		float text_scale,
+		glm::vec3 text_color
+	);
 
 	void addLine(const std::string& line);
 	void draw() const override;
 private:
-	const FontRenderer& _renderer;
+	const FontRenderer* _renderer;
 	glm::vec2 _position;
 	glm::vec2 _dimension;
 	float _text_scale;

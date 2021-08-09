@@ -1,7 +1,7 @@
 #include "game/headers/service-locator.hh"
 
-#include "game/headers/model/assimp/assimp-model-loader.hh"
-#include "game/headers/renderer/opengl/opengl-model-renderer.hh"
+#include "game/headers/model/assimp/assimp-terrain-loader.hh"
+#include "game/headers/renderer/opengl/opengl-terrain-renderer.hh"
 #include "game/headers/utility/logger.hh"
 #include "game/headers/utility/console-logger.hh"
 #include "external/glfw/include/GLFW/glfw3.h"
@@ -11,12 +11,12 @@ ServiceLocator& ServiceLocator::getInstance() {
 	return *locator;
 }
 
-std::unique_ptr<ModelLoader> ServiceLocator::getModelLoader() const {
-	return std::make_unique<AssimpModelLoader>();
+std::unique_ptr<TerrainLoader> ServiceLocator::getTerrainLoader() const {
+	return std::make_unique<AssimpTerrainLoader>();
 }
 
-std::unique_ptr<ModelRenderer> ServiceLocator::getModelRenderer() const {
-	return std::make_unique<OpenGLModelRenderer>();
+std::unique_ptr<TerrainRenderer> ServiceLocator::getTerrainRenderer() const {
+	return std::make_unique<OpenGLTerrainRenderer>();
 }
 
 std::unique_ptr<Logger> ServiceLocator::getLogger() const {

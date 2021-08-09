@@ -7,10 +7,17 @@
 
 #include <iostream>
 
-BitmapFont::BitmapFont(const std::string& bitmap_path, int rows, int columns,
-		int first_ascii_sym, float width_height):
-	_rows{rows}, _columns{columns},
-	_first_ascii_sym{first_ascii_sym}, _width_height{width_height}
+BitmapFont::BitmapFont(
+	const std::string& bitmap_path,
+	int rows,
+	int columns,
+	int first_ascii_sym,
+	float width_height
+):
+	_rows{rows},
+	_columns{columns},
+	_first_ascii_sym{first_ascii_sym},
+	_width_height{width_height}
 {
 	// Load teh texture data into the OpenGL context
 	int image_width, image_height, color_channels;

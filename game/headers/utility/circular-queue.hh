@@ -13,7 +13,7 @@ public:
 	T getLast(int64_t index) const;
 
 private:
-	std::array<T, N> arr;
+	std::array<T, N> arr{};
 	
 	std::size_t size{N};
 	std::size_t inserted_count{0};

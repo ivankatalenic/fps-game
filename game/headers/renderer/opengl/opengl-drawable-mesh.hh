@@ -15,12 +15,12 @@ struct OpenGLTexture {
 
 class OpenGLDrawableMesh : public Drawable {
 public:
-	OpenGLDrawableMesh(std::shared_ptr<Mesh> mesh, Shader& shader);
+	OpenGLDrawableMesh(std::shared_ptr<Mesh> mesh, Shader* shader);
 
 	void draw() const override;
 private:
 	std::shared_ptr<Mesh> mesh_;
-	Shader& shader_;
+	Shader* shader_;
 
 	std::size_t vertex_count_;
 

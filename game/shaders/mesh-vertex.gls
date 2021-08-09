@@ -1,23 +1,28 @@
-#version 330 core
+#version 400 core
 
-// Shader inputs
-layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 tex_coord;
+// Input
+in layout (location = 0) vec3 position;
+in layout (location = 1) vec3 normal;
+in layout (location = 2) vec2 tex_coord;
 
-// Uniform variables
-uniform mat4 mat_model;
-uniform mat4 mat_view;
-uniform mat4 mat_projection;
-
-// Shader outputs
+// Output
 out vec3 normal_out;
 out vec3 frag_position;
 out vec2 tex_coord_out;
 
+// Uniform
+uniform mat4 mat_mesh;
+uniform mat4 mat_model;
+uniform mat4 mat_view;
+uniform mat4 mat_projection;
+
 void main() {
-	gl_Position = mat_projection * mat_view * mat_model * vec4(position, 1.0f);
-	normal_out = mat3(transpose(inverse(mat_view * mat_model))) * normal;
-	frag_position = vec3(mat_view * mat_model * vec4(position, 1.0f));
+	mat4 mat_pos = mat_model * mat_mesh;
+
+	gl_Position = mat_projection * mat_view * mat_pos * vec4(position, 1.0f);
+
+	normal_out = mat3(transpose(inverse(mat_view * mat_pos))) * normal;
+	frag_position = vec3(mat_view * mat_pos * vec4(position, 1.0f));
+	
 	tex_coord_out = tex_coord;
 }

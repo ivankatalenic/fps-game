@@ -9,12 +9,17 @@
 template <std::size_t STATS_LEN>
 class FrameStatsDisplay : public Element {
 public:
-	FrameStatsDisplay(FontRenderer& font_renderer, const FrameStats<STATS_LEN>& frame_stats, glm::vec2 pos, float font_size);
+	FrameStatsDisplay(
+		FontRenderer* font_renderer,
+		const FrameStats<STATS_LEN>* frame_stats,
+		glm::vec2 pos,
+		float font_size
+	);
 
 	void draw() const override;
 private:
-	FontRenderer& font_renderer_;
-	const FrameStats<STATS_LEN>& frame_stats_;
+	FontRenderer* font_renderer_;
+	const FrameStats<STATS_LEN>* frame_stats_;
 	glm::vec2 pos_;
 	float font_size_;
 };

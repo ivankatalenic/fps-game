@@ -14,10 +14,10 @@
 
 #include "game/headers/renderer/screen.hh"
 #include "game/headers/renderer/camera.hh"
-#include "game/headers/renderer/model-renderer.hh"
+#include "game/headers/renderer/terrain-renderer.hh"
 
 #include "game/headers/model/model.hh"
-#include "game/headers/model/model-loader.hh"
+#include "game/headers/model/terrain-loader.hh"
 
 #include "game/headers/gui/bitmap-font.hh"
 #include "game/headers/gui/bitmap-font-renderer.hh"
@@ -33,6 +33,7 @@
 // System classes
 #include <string>
 #include <memory>
+#include <tuple>
 
 // Function prototypes
 void error_callback(int error, const char* description);
@@ -43,12 +44,19 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void window_iconify_callback(GLFWwindow* window, int iconified);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void registerKeyboardListeners(
+	KeyboardHandler& keyboard_handler,
+	Camera& camera,
+	TextArea& text_area,
+	GLFWwindow* window
+);
+std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_stats);
 
 // Global variables
-bool drawing{true};
-Screen screen;
-KeyboardHandler keyboard_handler;
-MouseHandler mouse_handler;
+bool                    drawing{true};
+Screen                  screen;
+KeyboardHandler         keyboard_handler;
+MouseHandler            mouse_handler;
 std::unique_ptr<Logger> logger{ServiceLocator::getInstance().getLogger()};
 
 int main() {
@@ -99,9 +107,9 @@ int main() {
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported()) {
 	    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-		logger->Info("raw mouse motion is enabled");
+		logger->Info("Raw mouse motion is enabled");
 	} else {
-		logger->Info("raw mouse motion is not supported");
+		logger->Info("Raw mouse motion is not supported");
 	}
 
 	glfwMakeContextCurrent(window);
@@ -128,35 +136,176 @@ int main() {
 
 
 	// Setting the GUI
-	Scene GUI;
-	// Setting up a UI renderer
-	Shader text_shader("game/shaders/text-vertex.gls", "game/shaders/text-fragment.gls");
-	BitmapFont bitmap_font("game/textures/free-mono-256-4096.tga", 16, 16, ' ', 0.6f);
-	BitmapFontRenderer bitmap_font_renderer(bitmap_font, text_shader, static_cast<float>(screen.width) / screen.height);
-
-	TextArea text_area(
-		bitmap_font_renderer,
-		glm::vec2{-1.0f, -1.0f},
-		glm::vec2{0.75f, 1.0f},
-		0.05f,
-		glm::vec3{1.0f, 1.0f, 1.0f}
-	);
-	GUI.add(&text_area);
-
 	FrameStats<512> frame_stats;
-	FrameStatsDisplay<512> frame_stats_display(bitmap_font_renderer, frame_stats, {-1.0f, 0.85f}, 0.05f);
-	GUI.add(&frame_stats_display);
+	std::tuple<Scene*, TextArea*> gui_tuple{create_gui(&camera, &frame_stats)};
+	Scene* GUI{std::get<0>(gui_tuple)};
+	TextArea* text_area{std::get<1>(gui_tuple)};
 
-	CameraStatsDisplay camera_stats_display(bitmap_font_renderer, camera, {-1.0f, 0.95f}, 0.05f);
-	GUI.add(&camera_stats_display);
-
-	// Setting up a model loader, and a model renderer
-	std::unique_ptr<ModelRenderer> model_renderer{ServiceLocator::getInstance().getModelRenderer()};
-	model_renderer->init(screen, &camera);
-	std::unique_ptr<ModelLoader> model_loader{ServiceLocator::getInstance().getModelLoader()};
-	model_renderer->addModel(model_loader->loadModel("game/terrains/plane-cube/plane-cube.obj"));
+	// Setting up a terrain loader, and a terrain renderer
+	std::unique_ptr<TerrainRenderer> terrain_renderer{ServiceLocator::getInstance().getTerrainRenderer()};
+	terrain_renderer->init(screen, &camera);
+	std::unique_ptr<TerrainLoader> terrain_loader{ServiceLocator::getInstance().getTerrainLoader()};
+	std::shared_ptr<Terrain> terrain{terrain_loader->loadTerrain("game/terrains/plane-cube/plane-cube.obj")};
+	terrain_renderer->addTerrain(terrain);
 
 	// Setting up inputs
+	registerKeyboardListeners(keyboard_handler, camera, *text_area, window);
+	mouse_handler.registerCursorHandler([&](double x_position, double y_position) {
+		static double last_x{screen.width / 2.0};
+		static double last_y{screen.height / 2.0};
+
+		camera.swipe(x_position - last_x, y_position - last_y);
+
+		last_x = x_position;
+		last_y = y_position;
+	});
+	mouse_handler.registerScrollHandler([&](double x_offset, double y_offset) {
+		constexpr float SCROLL_FACTOR{0.5f};
+		camera.speed += SCROLL_FACTOR * static_cast<float>(y_offset);
+	});
+
+
+	// Main render loop
+	glfwSwapInterval(0); // VSYNC
+
+	double current_time{glfwGetTime()};
+	double frame_start_time{current_time};
+	double last_frame_duration{1.0 / 60.0};
+
+	while (!glfwWindowShouldClose(window)) {
+
+		glfwPollEvents();
+		if (!drawing) {
+			glfwWaitEvents();
+			continue;
+		}
+
+		// Terrain, and models
+		terrain_renderer->draw();
+ 
+		// Controls
+		camera.step(static_cast<float>(last_frame_duration));
+		
+		// GUI
+		GUI->draw();
+
+		glfwSwapBuffers(window);
+
+		current_time = glfwGetTime();
+		last_frame_duration = current_time - frame_start_time;
+		frame_start_time = current_time;
+
+		// Frame stats
+		frame_stats.addFrameTime(last_frame_duration);
+	}
+
+	glfwTerminate();
+	return 0;
+}
+
+void error_callback(int error, const char* description) {
+	logger->Error(description);
+}
+
+void key_callback(GLFWwindow* window, 
+	int key, int scancode, int action, int mods) {
+	keyboard_handler.processKey(Input::Key{key}, Input::Action{action}, Input::Modifier{mods});
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+	screen.width = width;
+	screen.height = height;
+	glViewport(0, 0, screen.width, screen.height);
+}
+
+void window_iconify_callback(GLFWwindow* window, int iconified) {
+	if (iconified) {
+		drawing = false;
+		
+		return;
+	}
+	
+	drawing = true;
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	mouse_handler.processButton(Input::MouseButton{button}, Input::Action{action}, Input::Modifier{mods});
+}
+
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	mouse_handler.processCursor(xpos, ypos);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	mouse_handler.processScroll(xoffset, yoffset);
+}
+
+std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_stats) {
+	Scene* GUI {new Scene()};
+	
+	Shader* text_shader {
+		new Shader(
+			"game/shaders/text-vertex.gls",
+			"game/shaders/text-fragment.gls"
+		)
+	};
+	BitmapFont* bitmap_font {
+		new BitmapFont(
+			"game/textures/free-mono-256-4096.tga",
+			16,
+			16,
+			' ',
+			0.6f
+		)
+	};
+	BitmapFontRenderer* bitmap_font_renderer{
+		new BitmapFontRenderer(
+			bitmap_font,
+			text_shader,
+			static_cast<float>(screen.width) / screen.height
+		)
+	};
+
+	TextArea* text_area{
+		new TextArea(
+			bitmap_font_renderer,
+			glm::vec2{-1.0f, -1.0f},
+			glm::vec2{0.75f, 1.0f},
+			0.05f,
+			glm::vec3{1.0f, 1.0f, 1.0f}
+		)
+	};
+	GUI->add(text_area);
+
+	FrameStatsDisplay<512>* frame_stats_display{
+		new FrameStatsDisplay<512>(
+			bitmap_font_renderer,
+			frame_stats,
+			{-1.0f, 0.85f},
+			0.05f
+		)
+	};
+	GUI->add(frame_stats_display);
+
+	CameraStatsDisplay* camera_stats_display{
+		new CameraStatsDisplay(
+			bitmap_font_renderer,
+			camera,
+			{-1.0f, 0.95f},
+			0.05f
+		)
+	};
+	GUI->add(camera_stats_display);
+
+	return std::make_tuple(GUI, text_area);
+}
+
+void registerKeyboardListeners(
+	KeyboardHandler& keyboard_handler,
+	Camera& camera,
+	TextArea& text_area,
+	GLFWwindow* window
+) {
 	keyboard_handler.registerKeyHandler(Input::Key::W, [&](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
@@ -275,91 +424,4 @@ int main() {
 			}
 		}
 	});
-	mouse_handler.registerCursorHandler([&](double x_position, double y_position) {
-		static double last_x{screen.width / 2.0};
-		static double last_y{screen.height / 2.0};
-
-		camera.swipe(x_position - last_x, y_position - last_y);
-
-		last_x = x_position;
-		last_y = y_position;
-	});
-	mouse_handler.registerScrollHandler([&](double x_offset, double y_offset) {
-		constexpr float SCROLL_FACTOR{0.5f};
-		camera.speed += SCROLL_FACTOR * static_cast<float>(y_offset);
-	});
-
-
-	// Main render loop
-	glfwSwapInterval(0); // VSYNC
-
-	double current_time{glfwGetTime()};
-	double frame_start_time{current_time};
-	double last_frame_duration{1.0 / 60.0};
-
-	while (!glfwWindowShouldClose(window)) {
-
-		glfwPollEvents();
-		if (!drawing) {
-			glfwWaitEvents();
-			continue;
-		}
-
-		// Terrain, and models
-		model_renderer->draw();
-
-		// Controls
-		camera.step(static_cast<float>(last_frame_duration));
-		
-		// GUI
-		GUI.draw();
-
-		glfwSwapBuffers(window);
-
-		current_time = glfwGetTime();
-		last_frame_duration = current_time - frame_start_time;
-		frame_start_time = current_time;
-
-		// Frame stats
-		frame_stats.addFrameTime(last_frame_duration);
-	}
-
-	glfwTerminate();
-	return 0;
-}
-
-void error_callback(int error, const char* description) {
-	logger->Error(description);
-}
-
-void key_callback(GLFWwindow* window, 
-	int key, int scancode, int action, int mods) {
-	keyboard_handler.processKey(Input::Key{key}, Input::Action{action}, Input::Modifier{mods});
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-	screen.width = width;
-	screen.height = height;
-	glViewport(0, 0, screen.width, screen.height);
-}
-
-void window_iconify_callback(GLFWwindow* window, int iconified) {
-	if (iconified) {
-		// The window was iconified
-		drawing = false;
-	} else {
-		drawing = true;
-	}
-}
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-	mouse_handler.processButton(Input::MouseButton{button}, Input::Action{action}, Input::Modifier{mods});
-}
-
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-	mouse_handler.processCursor(xpos, ypos);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-	mouse_handler.processScroll(xoffset, yoffset);
 }

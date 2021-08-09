@@ -30,7 +30,7 @@ struct Texture {
 
 class Mesh {
 public:
-	glm::mat4 trans_matrix_{glm::mat4(1.0f)};
+	glm::mat4 pos_;
 
 	std::vector<Triangle> triangles_;
 	std::vector<Texture> textures_;
@@ -41,10 +41,13 @@ public:
 	 * Mesh constructor steals (moves) resources from the given vectors.
 	 */
 	Mesh(
+		glm::vec3 pos,
 		std::vector<Triangle>&& triangles,
 		std::vector<Texture>&& textures,
 		Material material
 	);
+
+	void move(glm::vec3 trans);
 };
 
 #endif // MESH_HH

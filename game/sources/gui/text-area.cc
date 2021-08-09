@@ -4,10 +4,19 @@
 
 #include <string_view>
 
-TextArea::TextArea(const FontRenderer& renderer, glm::vec2 position, glm::vec2 dimension,
-	float text_scale, glm::vec3 text_color):
-		_renderer{renderer}, _position{position}, _dimension{dimension},
-		_text_scale{text_scale}, _text_color{text_color} {
+TextArea::TextArea(
+	const FontRenderer* renderer,
+	glm::vec2 position,
+	glm::vec2 dimension,
+	float text_scale,
+	glm::vec3 text_color
+):
+	_renderer{renderer},
+	_position{position},
+	_dimension{dimension},
+	_text_scale{text_scale},
+	_text_color{text_color}
+{
 
 }
 
@@ -34,7 +43,7 @@ int TextArea::getLastCharPosInRow(std::string_view str, float scale) const {
 	std::size_t left_bound{0}, right_bound{str.length() - 1};
 	while (left_bound < right_bound) {
 		std::size_t middle{(left_bound + right_bound + 1) / 2};
-		if (_renderer.getStringLength(str.substr(0, middle + 1), _text_scale) <= _dimension.x) {
+		if (_renderer->getStringLength(str.substr(0, middle + 1), _text_scale) <= _dimension.x) {
 			left_bound = middle;
 		} else {
 			right_bound = middle - 1;
@@ -71,12 +80,12 @@ void TextArea::draw() const {
 		}
 		const std::string_view line(*it);
 
-		if (_renderer.getStringLength(line, _text_scale) > _dimension.x) {
+		if (_renderer->getStringLength(line, _text_scale) > _dimension.x) {
 			// The line spans more than one row
 			std::vector<std::string_view> broken_lines{breakLine(line, _text_scale)};
 			for (std::vector<std::string_view>::const_reverse_iterator bl_it{broken_lines.crbegin()};
 					bl_it != broken_lines.crend(); ++bl_it) {
-				_renderer.draw(*bl_it, _text_scale, {_position.x, curr_row_y}, _text_color);
+				_renderer->draw(*bl_it, _text_scale, {_position.x, curr_row_y}, _text_color);
 				curr_row_y += _text_scale;
 				// Check if the next row could be fully displayed inside the area
 				if (curr_row_y > _position.y + _dimension.y - _text_scale) {
@@ -85,7 +94,7 @@ void TextArea::draw() const {
 			}
 		} else {
 			// The line spans one row
-			_renderer.draw(line, _text_scale, {_position.x, curr_row_y}, _text_color);
+			_renderer->draw(line, _text_scale, {_position.x, curr_row_y}, _text_color);
 			curr_row_y += _text_scale;
 		}
 	}

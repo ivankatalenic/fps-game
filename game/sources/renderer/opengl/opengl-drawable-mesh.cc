@@ -4,7 +4,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "external/stb/stb_image.h"
 
-OpenGLDrawableMesh::OpenGLDrawableMesh(std::shared_ptr<Mesh> mesh, Shader& shader):
+OpenGLDrawableMesh::OpenGLDrawableMesh(std::shared_ptr<Mesh> mesh, Shader* shader):
 		mesh_{mesh}, shader_{shader}, vertex_count_{mesh->triangles_.size() * 3u} {
 	setupVertices();
 	setupTextures();
@@ -46,7 +46,6 @@ static unsigned int load_texture_from_file(const std::string& file_path);
 
 void OpenGLDrawableMesh::setupTextures() {
 	for (const Texture& texture : mesh_->textures_) {
-		// Load the texture
 		unsigned int texture_id{load_texture_from_file(texture.path)};
 		// Save the texture
 		opengl_textures_.push_back({texture_id, texture});
@@ -69,7 +68,7 @@ void OpenGLDrawableMesh::draw() const {
 			number = std::to_string(specular_n++);
 		}
 
-		glUniform1i(glGetUniformLocation(shader_.id, (name + number).c_str()), i);
+		glUniform1i(glGetUniformLocation(shader_->id, (name + number).c_str()), i);
 		glBindTexture(GL_TEXTURE_2D, opengl_textures_[i].id);
 	}
 
@@ -77,10 +76,14 @@ void OpenGLDrawableMesh::draw() const {
 
 	// Setting the mesh's material properties
 	Material material{mesh_->material_};
-	shader_.setVec3("material.color_ambient", material.color_ambient);
-	shader_.setVec3("material.color_diffuse", material.color_diffuse);
-	shader_.setVec3("material.color_specular", material.color_specular);
-	shader_.setFloat("material.shininess", material.shininess);
+	shader_->setVec3("material.color_ambient", material.color_ambient);
+	shader_->setVec3("material.color_diffuse", material.color_diffuse);
+	shader_->setVec3("material.color_specular", material.color_specular);
+	shader_->setFloat("material.shininess", material.shininess);
+
+	// Setting mesh's model matrix
+	shader_->setMat4("mat_mesh", mesh_->pos_);
+	shader_->setMat4("frag_mat_mesh", mesh_->pos_);
 
 	// Drawing the mesh
 	glBindVertexArray(vao_);

@@ -11,12 +11,17 @@
 
 class CameraStatsDisplay : public Element {
 public:
-	CameraStatsDisplay(FontRenderer& font_renderer, const Camera& camera, glm::vec2 pos, float font_size);
+	CameraStatsDisplay(
+		FontRenderer* font_renderer,
+		const Camera* camera,
+		glm::vec2 pos,
+		float font_size
+	);
 
 	void draw() const override;
 private:
-	FontRenderer& font_renderer_;
-	const Camera& camera_;
+	FontRenderer* font_renderer_;
+	const Camera* camera_;
 	glm::vec2 pos_;
 	float font_size_;
 

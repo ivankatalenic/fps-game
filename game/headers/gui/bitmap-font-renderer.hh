@@ -7,14 +7,17 @@
 
 class BitmapFontRenderer : public FontRenderer {
 public:
-	BitmapFontRenderer(const BitmapFont& font, const Shader& bitmap_shader,
-		float screen_width_height);
+	BitmapFontRenderer(
+		const BitmapFont* font,
+		const Shader* bitmap_shader,
+		float screen_width_height
+	);
 
 	void draw(std::string_view text, float scale, glm::vec2 position, glm::vec3 color) const override;
 	float getStringLength(std::string_view text, float scale) const override;
 private:
-	const BitmapFont& _font;
-	const Shader& _bitmap_shader;
+	const BitmapFont* _font;
+	const Shader* _bitmap_shader;
 	float _screen_width_height;
 	unsigned int _vao;
 	unsigned int _vbo;

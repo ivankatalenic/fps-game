@@ -1,4 +1,4 @@
-#version 330 core
+#version 400 core
 
 struct Material {
 	vec3 color_ambient;
@@ -14,11 +14,14 @@ struct Light {
 	vec3 color_specular;
 };
 
-// Shader inputs
+// Input
 // Already in the view space
 in vec3 normal_out;
 in vec3 frag_position;
 in vec2 tex_coord_out;
+
+// Output
+out vec4 frag_color;
 
 // Uniform variables
 // uniform sampler2D texture_diffuse1;
@@ -32,14 +35,12 @@ in vec2 tex_coord_out;
 
 // uniform float intensity;
 
+// Uniform
 uniform Material material;
 uniform Light light;
-
+uniform mat4 frag_mat_mesh;
 uniform mat4 frag_mat_model;
 uniform mat4 frag_mat_view;
-
-// Shader outputs
-out vec4 frag_color;
 
 void main() {
 	// frag_color = mix(texture(texture1, tex_coord_out), texture(texture2, tex_coord_out), intensity) * vec4(color_out, 1.0f);
@@ -55,7 +56,9 @@ void main() {
 	// Ambient lighting component
 	vec3 ambient = light.color_ambient * material.color_diffuse;
 
-	vec3 light_position_in_view = vec3(frag_mat_view * frag_mat_model * vec4(light.position, 1.0f));
+	mat4 frag_mat_pos = frag_mat_model * frag_mat_mesh;
+
+	vec3 light_position_in_view = vec3(frag_mat_view * frag_mat_pos * vec4(light.position, 1.0f));
 	vec3 normal = normalize(normal_out);
 	vec3 light_direction = light_position_in_view - frag_position;
 	float distance = length(light_direction);

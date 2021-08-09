@@ -7,7 +7,7 @@ elseif (WIN32)
 	set(CMAKE_C_COMPILER "gcc")
 	set(CMAKE_CXX_COMPILER "g++")
 else ()
-	message(FATAL_ERROR "Platform is not supported!")
+	message(FATAL_ERROR "The platform is not supported")
 endif ()
 
 project(fps-game)
@@ -30,9 +30,12 @@ set(SOURCES
 
 	game/sources/utility/console-logger.cc
 
-	game/sources/model/model.cc
 	game/sources/model/mesh.cc
-	game/sources/model/assimp/assimp-model-loader.cc
+	game/sources/model/model.cc
+	game/sources/model/terrain.cc
+	game/sources/model/assimp/assimp-terrain-loader.cc
+
+	game/sources/collision/collision-solver.cc
 
 	game/sources/gui/scene.cc
 	game/sources/gui/text-area.cc
@@ -43,7 +46,8 @@ set(SOURCES
 	game/sources/renderer/opengl/shader.cc
 	game/sources/renderer/opengl/opengl-drawable-mesh.cc
 	game/sources/renderer/opengl/opengl-drawable-model.cc
-	game/sources/renderer/opengl/opengl-model-renderer.cc
+	game/sources/renderer/opengl/opengl-drawable-terrain.cc
+	game/sources/renderer/opengl/opengl-terrain-renderer.cc
 
 	game/sources/input/keyboard-handler.cc
 	game/sources/input/mouse-handler.cc
@@ -66,7 +70,7 @@ set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL_PDB OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/assimp)
 
-target_compile_options(thegame PUBLIC -Wall -O2)
+target_compile_options(thegame PUBLIC -Wall)
 target_compile_features(thegame PUBLIC cxx_std_17)
 
 target_include_directories(thegame PUBLIC game/headers external external/stb external/glm external/glfw/include .)

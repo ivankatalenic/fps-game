@@ -1,27 +1,20 @@
 #ifndef MODEL_HH
 #define MODEL_HH
 
-#include "external/glm/glm/glm.hpp"
-
 #include "game/headers/model/mesh.hh"
 
 #include <vector>
 #include <memory>
 
-struct Light {
-	glm::vec3 position;
-
-	glm::vec3 color_ambient;
-	glm::vec3 color_diffuse;
-	glm::vec3 color_specular;
-};
-
 class Model {
 public:
+	glm::mat4 pos_;
+	
 	std::vector<std::shared_ptr<Mesh>> meshes_;
-	std::vector<Light> lights_;
 
-	Model(std::vector<std::shared_ptr<Mesh>>&& meshes, std::vector<Light>&& lights);
+	Model(glm::vec3 pos, std::vector<std::shared_ptr<Mesh>>&& meshes);
+
+	void move(glm::vec3 trans);
 };
 
 #endif // MODEL_HH

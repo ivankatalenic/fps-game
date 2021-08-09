@@ -1,7 +1,7 @@
-#ifndef ASSIMP_MODEL_LOADER_HH
-#define ASSIMP_MODEL_LOADER_HH
+#ifndef ASSIMP_TERRAIN_LOADER_HH
+#define ASSIMP_TERRAIN_LOADER_HH
 
-#include "game/headers/model/model-loader.hh"
+#include "game/headers/model/terrain-loader.hh"
 
 #include "external/assimp/include/assimp/mesh.h"
 #include "external/assimp/include/assimp/scene.h"
@@ -14,12 +14,13 @@
 
 #include <memory>
 
-class AssimpModelLoader : public ModelLoader {
+class AssimpTerrainLoader : public TerrainLoader {
 public:
-    AssimpModelLoader() = default;
-    std::shared_ptr<Model> loadModel(const std::string& path) override;
+	AssimpTerrainLoader() = default;
+
+	virtual std::shared_ptr<Terrain> loadTerrain(std::string_view filePath) override;
 private:
-    Assimp::Importer _importer;
+	Assimp::Importer _importer;
     std::vector<Texture> _loaded_textures;
 
     void processNode(std::vector<std::shared_ptr<Mesh>>& meshes, aiNode* node, const aiScene* scene);
@@ -31,4 +32,4 @@ private:
     std::vector<Texture> loadMaterialTextures(const aiMaterial* mat, const aiTextureType type, const std::string& type_name);
 };
 
-#endif // ASSIMP_MODEL_LOADER_HH
+#endif // ASSIMP_TERRAIN_LOADER_HH
