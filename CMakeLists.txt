@@ -1,24 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 
-if (UNIX)
-	set(CMAKE_C_COMPILER "gcc-8")
-	set(CMAKE_CXX_COMPILER "g++-8")
-elseif (WIN32)
-	set(CMAKE_C_COMPILER "gcc")
-	set(CMAKE_CXX_COMPILER "g++")
-else ()
-	message(FATAL_ERROR "The platform is not supported")
-endif ()
+project(fps-game LANGUAGES C CXX)
 
-project(fps-game)
-
-set(FPS_GAME_VERSION_MAJOR 0)
-set(FPS_GAME_VERSION_MINOR 1)
-
-configure_file(
-	"${PROJECT_SOURCE_DIR}/fps-game-config.h.in"
-	"${PROJECT_BINARY_DIR}/fps-game-config.h"
-)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_FLAGS "-Wa,-mbig-obj -O2")
 
 set(HEADERS
 	fps-game-config.h
@@ -56,7 +42,7 @@ set(SOURCES
 )
 add_executable(thegame ${HEADERS} ${SOURCES})
 set_target_properties(thegame PROPERTIES
-	CXX_STANDARD 17
+	CXX_STANDARD 20
 )
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -64,26 +50,25 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/glfw)
 
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL_PDB OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(USE_STATIC_CRT ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_VIEW off CACHE BOOL "" FORCE)
 add_subdirectory(external/assimp)
 
 target_compile_options(thegame PUBLIC -Wall)
-target_compile_features(thegame PUBLIC cxx_std_17)
+target_compile_features(thegame PUBLIC cxx_std_20)
 
 target_include_directories(thegame PUBLIC game/headers external external/stb external/glm external/glfw/include .)
 
-# target_link_directories(thegame lib)
 if (UNIX)
 	# Linux specific libraries
 	set(PLAT_SPEC_LIBS "dl")
-elseif (WIN32)
-	# Windows specific libraries
-	set(PLAT_SPEC_LIBS "")
-else ()
-	message(FATAL_ERROR "Platform is not supported!")
 endif ()
-
 target_link_libraries(thegame stdc++fs assimp glfw ${PLAT_SPEC_LIBS})

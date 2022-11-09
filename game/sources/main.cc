@@ -50,6 +50,7 @@ void registerKeyboardListeners(
 	TextArea& text_area,
 	GLFWwindow* window
 );
+void registerMouseListeners(MouseHandler& mouse_handler, Camera& camera, TextArea& text_area);
 std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_stats);
 
 // Global variables
@@ -150,20 +151,7 @@ int main() {
 
 	// Setting up inputs
 	registerKeyboardListeners(keyboard_handler, camera, *text_area, window);
-	mouse_handler.registerCursorHandler([&](double x_position, double y_position) {
-		static double last_x{screen.width / 2.0};
-		static double last_y{screen.height / 2.0};
-
-		camera.swipe(x_position - last_x, y_position - last_y);
-
-		last_x = x_position;
-		last_y = y_position;
-	});
-	mouse_handler.registerScrollHandler([&](double x_offset, double y_offset) {
-		constexpr float SCROLL_FACTOR{0.5f};
-		camera.speed += SCROLL_FACTOR * static_cast<float>(y_offset);
-	});
-
+	registerMouseListeners(mouse_handler, camera, *text_area);
 
 	// Main render loop
 	glfwSwapInterval(0); // VSYNC
@@ -410,6 +398,9 @@ void registerKeyboardListeners(
 			}
 		}
 	});
+}
+
+void registerMouseListeners(MouseHandler& mouse_handler, Camera& camera, TextArea& text_area) {
 	mouse_handler.registerButtonHandler(Input::MouseButton::Left, [&](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
@@ -423,5 +414,18 @@ void registerKeyboardListeners(
 				break;
 			}
 		}
+	});
+	mouse_handler.registerCursorHandler([&](double x_position, double y_position) {
+		static double last_x{screen.width / 2.0};
+		static double last_y{screen.height / 2.0};
+
+		camera.swipe(x_position - last_x, y_position - last_y);
+
+		last_x = x_position;
+		last_y = y_position;
+	});
+	mouse_handler.registerScrollHandler([&](double x_offset, double y_offset) {
+		constexpr float SCROLL_FACTOR{0.5f};
+		camera.speed += SCROLL_FACTOR * static_cast<float>(y_offset);
 	});
 }
