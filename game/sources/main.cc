@@ -1,14 +1,13 @@
 #include "fps-game-config.h"
 
 // Library classes
-#include "external/glad/glad.h"
-#include "external/glfw/include/GLFW/glfw3.h"
-#include "external/glm/glm/ext/scalar_constants.hpp"
+#include "external/glm/glm/gtc/constants.hpp"
 
-// Private classes
+// Local classes
 #include "game/headers/service-locator.hh"
 #include "game/headers/debug-help.hh"
 #include "game/headers/frame-stats.hh"
+#include "game/headers/window-manager.hh"
 
 #include "game/headers/utility/logger.hh"
 
@@ -36,135 +35,74 @@
 #include <tuple>
 
 // Function prototypes
-void error_callback(int error, const char* description);
-void key_callback(GLFWwindow* window, 
-	int key, int scancode, int action, int mods);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void window_iconify_callback(GLFWwindow* window, int iconified);
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void registerKeyboardListeners(
-	KeyboardHandler& keyboard_handler,
-	Camera& camera,
-	TextArea& text_area,
-	GLFWwindow* window
+void reg_kb_listeners(
+	std::shared_ptr<Logger>          logger,
+	std::shared_ptr<KeyboardHandler> keyboard_handler,
+	Camera&                          camera,
+	TextArea&                        text_area,
+	std::shared_ptr<WindowManager>   window_manager
 );
-void registerMouseListeners(MouseHandler& mouse_handler, Camera& camera, TextArea& text_area);
-std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_stats);
-
-// Global variables
-bool                    drawing{true};
-Screen                  screen;
-KeyboardHandler         keyboard_handler;
-MouseHandler            mouse_handler;
-std::unique_ptr<Logger> logger{ServiceLocator::getInstance().getLogger()};
+void reg_mouse_listeners(
+	std::shared_ptr<Logger>       logger,
+	std::shared_ptr<MouseHandler> mouse_handler,
+	Camera&                       camera,
+	TextArea&                     text_area,
+	Screen                        screen
+);
+std::tuple<Scene*, TextArea*> create_gui(
+	Camera*          camera,
+	FrameStats<512>* frame_stats,
+	Screen           screen
+);
 
 int main() {
-	// Setting up GLFW
-	glfwSetErrorCallback(error_callback);
-
-	if (!glfwInit()) {
-		// GLFW initialization failed
-		logger->Error("cannot initialize the GLFW library");
-		return -1;
-	}
-
-	GLFWmonitor* monitor{glfwGetPrimaryMonitor()};
-	const GLFWvidmode* videoMode{glfwGetVideoMode(monitor)};
-	screen.width = videoMode->width;
-	screen.height = videoMode->height;
-
-	glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
-	glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
-	glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
-	glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	// Multisample Anti-Aliasing (MSAA) number of samples
-	glfwWindowHint(GLFW_SAMPLES, 4);
-	// glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-	logger->Info("Refresh rate: " + std::to_string(videoMode->refreshRate));
-	logger->Info("Resolution: " + std::to_string(screen.width) + " * " + std::to_string(screen.height));
-	GLFWwindow* window = glfwCreateWindow(screen.width, screen.height, 
-		"fps game", monitor, NULL);
-
-	if (!window) {
-		// Window creation failed
-		glfwTerminate();
-		logger->Error("cannot create a window");
-		return -1;
-	}
-
-	// Setting GLFW callbacks
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetWindowIconifyCallback(window, window_iconify_callback);
-	glfwSetCursorPosCallback(window, cursor_position_callback);
-	glfwSetMouseButtonCallback(window, mouse_button_callback);
-	glfwSetScrollCallback(window, scroll_callback);
-
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	if (glfwRawMouseMotionSupported()) {
-	    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-		logger->Info("Raw mouse motion is enabled");
-	} else {
-		logger->Info("Raw mouse motion is not supported");
-	}
-
-	glfwMakeContextCurrent(window);
-	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-		logger->Info("cannot initialize the GLAD library");
-		glfwTerminate();
-		return -1;
-	}
-
-	glfwGetFramebufferSize(window, &screen.width, &screen.height);
-
+	const std::string title{"The Game"};
+	std::shared_ptr<Logger> logger{ServiceLocator::getInstance().getLogger()};
+	std::shared_ptr<KeyboardHandler> keyboard_handler{std::make_shared<KeyboardHandler>()};
+	std::shared_ptr<MouseHandler> mouse_handler{std::make_shared<MouseHandler>()};
+	std::shared_ptr<WindowManager> window_manager{
+		std::make_shared<WindowManager>(logger, keyboard_handler, mouse_handler, title)
+	};
 
 	// Setting up a 3D camera
 	Camera camera(
-		glm::pi<float>() / 2.0f, 		// FOV in radians
-		0.1f,							// Near clip plane
-		500.0f,							// Far clip plane
-		0.0f,							// Orientation Yaw: Angle from x-axis
-		0.5f * glm::pi<float>(),		// Orientation Pitch: Elevation from x-z plane
-		glm::vec3(2.0f, 2.0f, 2.0f),	// Position
-		4.0f,							// Movement speed
-		0.001f							// Mouse sensitivity
+		glm::pi<float>() / 2.0f, 	 // FOV in radians
+		0.1f,						 // Near clip plane
+		500.0f,						 // Far clip plane
+		0.0f,						 // Orientation Yaw: Angle from x-axis
+		0.5f * glm::pi<float>(),	 // Orientation Pitch: Elevation from x-z plane
+		glm::vec3(2.0f, 2.0f, 2.0f), // Position
+		4.0f,						 // Movement speed
+		0.001f						 // Mouse sensitivity
 	);
 
 
 	// Setting the GUI
 	FrameStats<512> frame_stats;
-	std::tuple<Scene*, TextArea*> gui_tuple{create_gui(&camera, &frame_stats)};
+	std::tuple<Scene*, TextArea*> gui_tuple{create_gui(&camera, &frame_stats, window_manager->get_screen())};
 	Scene* GUI{std::get<0>(gui_tuple)};
 	TextArea* text_area{std::get<1>(gui_tuple)};
 
 	// Setting up a terrain loader, and a terrain renderer
-	std::unique_ptr<TerrainRenderer> terrain_renderer{ServiceLocator::getInstance().getTerrainRenderer()};
-	terrain_renderer->init(screen, &camera);
-	std::unique_ptr<TerrainLoader> terrain_loader{ServiceLocator::getInstance().getTerrainLoader()};
+	std::shared_ptr<TerrainRenderer> terrain_renderer{ServiceLocator::getInstance().getTerrainRenderer()};
+	terrain_renderer->init(window_manager->get_screen(), &camera);
+	std::shared_ptr<TerrainLoader> terrain_loader{ServiceLocator::getInstance().getTerrainLoader()};
 	std::shared_ptr<Terrain> terrain{terrain_loader->loadTerrain("game/terrains/plane-cube/plane-cube.obj")};
 	terrain_renderer->addTerrain(terrain);
 
 	// Setting up inputs
-	registerKeyboardListeners(keyboard_handler, camera, *text_area, window);
-	registerMouseListeners(mouse_handler, camera, *text_area);
+	reg_kb_listeners(logger, keyboard_handler, camera, *text_area, window_manager);
+	reg_mouse_listeners(logger, mouse_handler, camera, *text_area, window_manager->get_screen());
 
-	// Main render loop
-	glfwSwapInterval(0); // VSYNC
-
-	double current_time{glfwGetTime()};
+	double current_time{window_manager->get_time()};
 	double frame_start_time{current_time};
 	double last_frame_duration{1.0 / 60.0};
 
-	while (!glfwWindowShouldClose(window)) {
+	while (!window_manager->should_close_window()) {
 
-		glfwPollEvents();
-		if (!drawing) {
-			glfwWaitEvents();
+		window_manager->handle_events();
+		if (window_manager->is_minimized()) {
+			window_manager->wait_events();
 			continue;
 		}
 
@@ -177,9 +115,9 @@ int main() {
 		// GUI
 		GUI->draw();
 
-		glfwSwapBuffers(window);
+		window_manager->swap_buffers();
 
-		current_time = glfwGetTime();
+		current_time = window_manager->get_time();
 		last_frame_duration = current_time - frame_start_time;
 		frame_start_time = current_time;
 
@@ -187,49 +125,11 @@ int main() {
 		frame_stats.addFrameTime(last_frame_duration);
 	}
 
-	glfwTerminate();
 	return 0;
 }
 
-void error_callback(int error, const char* description) {
-	logger->Error(description);
-}
-
-void key_callback(GLFWwindow* window, 
-	int key, int scancode, int action, int mods) {
-	keyboard_handler.processKey(Input::Key{key}, Input::Action{action}, Input::Modifier{mods});
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-	screen.width = width;
-	screen.height = height;
-	glViewport(0, 0, screen.width, screen.height);
-}
-
-void window_iconify_callback(GLFWwindow* window, int iconified) {
-	if (iconified) {
-		drawing = false;
-		
-		return;
-	}
-	
-	drawing = true;
-}
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-	mouse_handler.processButton(Input::MouseButton{button}, Input::Action{action}, Input::Modifier{mods});
-}
-
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-	mouse_handler.processCursor(xpos, ypos);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-	mouse_handler.processScroll(xoffset, yoffset);
-}
-
-std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_stats) {
-	Scene* GUI {new Scene()};
+std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_stats, Screen screen) {
+	Scene* GUI{new Scene()};
 	
 	Shader* text_shader {
 		new Shader(
@@ -288,13 +188,14 @@ std::tuple<Scene*, TextArea*> create_gui(Camera* camera, FrameStats<512>* frame_
 	return std::make_tuple(GUI, text_area);
 }
 
-void registerKeyboardListeners(
-	KeyboardHandler& keyboard_handler,
+void reg_kb_listeners(
+	std::shared_ptr<Logger> logger,
+	std::shared_ptr<KeyboardHandler> keyboard_handler,
 	Camera& camera,
 	TextArea& text_area,
-	GLFWwindow* window
+	std::shared_ptr<WindowManager> window_manager
 ) {
-	keyboard_handler.registerKeyHandler(Input::Key::W, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::W, [&camera](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				camera.setDirection(DIRECTION_FORWARD, true);
@@ -309,7 +210,7 @@ void registerKeyboardListeners(
 			}
 		}
 	});
-	keyboard_handler.registerKeyHandler(Input::Key::A, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::A, [&camera](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				camera.setDirection(DIRECTION_LEFT, true);
@@ -324,7 +225,7 @@ void registerKeyboardListeners(
 			}
 		}
 	});
-	keyboard_handler.registerKeyHandler(Input::Key::S, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::S, [&camera](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				camera.setDirection(DIRECTION_BACKWARD, true);
@@ -339,7 +240,7 @@ void registerKeyboardListeners(
 			}
 		}
 	});
-	keyboard_handler.registerKeyHandler(Input::Key::D, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::D, [&camera](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				camera.setDirection(DIRECTION_RIGHT, true);
@@ -354,7 +255,7 @@ void registerKeyboardListeners(
 			}
 		}
 	});
-	keyboard_handler.registerKeyHandler(Input::Key::LEFT_SHIFT, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::LEFT_SHIFT, [&camera](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				camera.setDirection(DIRECTION_UP, true);
@@ -369,7 +270,7 @@ void registerKeyboardListeners(
 			}
 		}
 	});
-	keyboard_handler.registerKeyHandler(Input::Key::LEFT_CONTROL, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::LEFT_CONTROL, [&camera](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				camera.setDirection(DIRECTION_DOWN, true);
@@ -384,10 +285,10 @@ void registerKeyboardListeners(
 			}
 		}
 	});
-	keyboard_handler.registerKeyHandler(Input::Key::ESCAPE, [&](Input::Action action, Input::Modifier modifier) {
+	keyboard_handler->registerKeyHandler(Input::Key::ESCAPE, [window_manager](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
-				glfwSetWindowShouldClose(window, GLFW_TRUE);
+				window_manager->close_window();
 				break;
 			}
 			case Input::Action::Release: {
@@ -400,8 +301,14 @@ void registerKeyboardListeners(
 	});
 }
 
-void registerMouseListeners(MouseHandler& mouse_handler, Camera& camera, TextArea& text_area) {
-	mouse_handler.registerButtonHandler(Input::MouseButton::Left, [&](Input::Action action, Input::Modifier modifier) {
+void reg_mouse_listeners(
+	std::shared_ptr<Logger> logger,
+	std::shared_ptr<MouseHandler> mouse_handler,
+	Camera& camera,
+	TextArea& text_area,
+	Screen screen
+) {
+	mouse_handler->registerButtonHandler(Input::MouseButton::Left, [&text_area](Input::Action action, Input::Modifier modifier) {
 		switch (action) {
 			case Input::Action::Press: {
 				text_area.addLine("Left mouse button pressed!");
@@ -415,7 +322,7 @@ void registerMouseListeners(MouseHandler& mouse_handler, Camera& camera, TextAre
 			}
 		}
 	});
-	mouse_handler.registerCursorHandler([&](double x_position, double y_position) {
+	mouse_handler->registerCursorHandler([&camera, screen](double x_position, double y_position) {
 		static double last_x{screen.width / 2.0};
 		static double last_y{screen.height / 2.0};
 
@@ -424,7 +331,7 @@ void registerMouseListeners(MouseHandler& mouse_handler, Camera& camera, TextAre
 		last_x = x_position;
 		last_y = y_position;
 	});
-	mouse_handler.registerScrollHandler([&](double x_offset, double y_offset) {
+	mouse_handler->registerScrollHandler([&camera](double x_offset, double y_offset) {
 		constexpr float SCROLL_FACTOR{0.5f};
 		camera.speed += SCROLL_FACTOR * static_cast<float>(y_offset);
 	});

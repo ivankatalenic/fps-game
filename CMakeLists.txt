@@ -4,7 +4,7 @@ project(fps-game LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS "-Wa,-mbig-obj -O2")
+set(CMAKE_CXX_FLAGS "-Wa,-mbig-obj -O2 -g")
 
 set(HEADERS
 	fps-game-config.h
@@ -13,6 +13,7 @@ set(HEADERS
 set(SOURCES
 	game/sources/main.cc
 	game/sources/service-locator.cc
+	game/sources/window-manager.cc
 
 	game/sources/utility/console-logger.cc
 
